@@ -1,0 +1,6 @@
+[submodule "lib/lib_sources/bash-lib-core"]
+	path = lib/lib_sources/bash-lib-core
+	url = git@github.com:robinhellmers/bash-lib-core.git
+[submodule "lib/lib_sources/bash-lib-handle-input"]
+	path = lib/lib_sources/bash-lib-handle-input
+	url = git@github.com:robinhellmers/bash-lib-handle-input.git
