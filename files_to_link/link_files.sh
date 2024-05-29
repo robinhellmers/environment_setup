@@ -52,8 +52,27 @@ readonly WINDOWS_PATH_INDICATOR='[WIN]'
 ### MAIN ###
 ############
 
+register_help_text 'link_files.sh' \
+"link_files.sh
+
+Creates symbolic links to files in the repository.
+
+All files under 'filesystem_hierarchy/' will be symlinked from corresponding
+path under '\$HOME/' with one difference. Directory and file names which start
+with 'dot_' will be replaced with an actual dot '.'.
+
+Example:
+A repository file
+    'filesystem_hierarchy/dot_local/bin/myscript.sh'
+will be symlinked from
+    '\$HOME/.local/bin/myscript.sh'"
+
+register_function_flags 'link_files.sh'
+
 main()
 {
+    _handle_args 'link_files.sh' "$@"
+
     find_kernel
     find_os
 
