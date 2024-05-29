@@ -41,6 +41,12 @@ tmp_find_script_path() {
 
 library_sourcing
 
+##############################
+### EXTRA GLOBAL VARIABLES ###
+##############################
+
+readonly WINDOWS_PATH_INDICATOR='[WIN]'
+
 ############
 ### MAIN ###
 ############
@@ -55,6 +61,14 @@ main()
     mappings=()
     add_filesystem_hierarchy_files_to_mappings_array
 
+    find_vscode_settings_path
+
+    echo "VSCODE_USER_SETTINGS_PATH:            '$VSCODE_USER_SETTINGS_PATH'"
+    echo "VSCODE_USER_KEYBINDINGS_PATH:         '$VSCODE_USER_KEYBINDINGS_PATH'"
+    echo "VSCODEINSIDERS_USER_SETTINGS_PATH:    '$VSCODEINSIDERS_USER_SETTINGS_PATH'"
+    echo "VSCODEINSIDERS_USER_KEYBINDINGS_PATH: '$VSCODEINSIDERS_USER_KEYBINDINGS_PATH'"
+
+    echo
     echo "mappings array entries:"
     for mapping in "${mappings[@]}"
     do
@@ -174,6 +188,85 @@ add_filesystem_hierarchy_files_to_mappings_array()
 
         mappings+=("${repo_file}:${new_symlink}")
     done
+}
+
+register_help_text 'find_vscode_settings_path' \
+"find_vscode_settings_path
+
+Finds VSCode path for settings files. Uses 'found_kernel' to know if to look in
+Windows when using WSL or in Linux if running native Linux.
+
+Output variables:
+* VSCODE_USER_SETTINGS_PATH:
+    - User settings path for Default VSCode, not Insiders edition.
+    - Does not include filename 'settings.json'
+    - If a Windows path, with the form 'C:\\Users\\...', a prefix from the
+      variable 'WINDOWS_PATH_INDICATOR' is added for easy identification.
+        - Example: '[WIN]C:\\Users\\...'
+    - If path is not found, the text 'UNKNOWN_WINDOWS_APPDATA_VSCODE' is stored.
+* VSCODE_USER_KEYBINDINGS_PATH:
+    - Same as VSCODE_USER_SETTINGS_PATH but for 'keybindings.json'.
+* VSCODEINSIDERS_USER_SETTINGS_PATH:
+    - Same as VSCODE_USER_SETTINGS_PATH but for VSCode Insiders edition.
+    - If path is not found, the text 'UNKNOWN_WINDOWS_APPDATA_VSCODEINSIDERS'
+      is stored.
+* VSCODEINSIDERS_USER_KEYBINDINGS_PATH:
+    - Same as VSCODEINSIDERS_USER_SETTINGS_PATH but for 'keybindings.json'."
+
+register_function_flags 'find_vscode_settings_path'
+
+find_vscode_settings_path()
+{
+    _handle_args 'find_vscode_settings_path' "$@"
+
+    case "$found_kernel" in
+        'wsl')
+            if ! command -v wslvar 2>&1 >/dev/null
+            then
+                echo_error "To have access to 'wslvar' command, you need to install 'wslu'."
+                echo_error "Install it with: 'sudo apt install wslu'"
+                echo_error "Then re-run this script."
+                exit 1
+            fi
+
+            readonly WINDOWS_APPDATA="$(wslvar APPDATA)"
+            readonly WINDOWS_APPDATA_VSCODE="${WINDOWS_APPDATA}\\Code"
+            readonly WINDOWS_APPDATA_VSCODEINSIDERS="${WINDOWS_APPDATA}\\Code - Insiders"
+            ;;
+        'native')
+            echo_error "Native kernel while finding vscode settings path - TODO"
+            exit 1
+            ;;
+        *)
+            echo_error "Unknown kernel while finding vscode settings path"
+            exit 1
+            ;;
+    esac
+
+    if [[ -d "$(wslpath "$WINDOWS_APPDATA_VSCODE")" ]]
+    then
+        readonly VSCODE_USER_SETTINGS_PATH="${WINDOWS_PATH_INDICATOR}${WINDOWS_APPDATA_VSCODE}\\user"
+        readonly VSCODE_USER_KEYBINDINGS_PATH="${WINDOWS_PATH_INDICATOR}${WINDOWS_APPDATA_VSCODE}\\user"
+    else
+        readonly VSCODE_USER_SETTINGS_PATH="UNKNOWN_WINDOWS_APPDATA_VSCODE"
+        readonly VSCODE_USER_KEYBINDINGS_PATH="UNKNOWN_WINDOWS_APPDATA_VSCODE"
+    fi
+
+    if [[ -d "$(wslpath "$WINDOWS_APPDATA_VSCODEINSIDERS")" ]]
+    then
+        readonly VSCODEINSIDERS_USER_SETTINGS_PATH="${WINDOWS_PATH_INDICATOR}${WINDOWS_APPDATA_VSCODEINSIDERS}\\user"
+        readonly VSCODEINSIDERS_USER_KEYBINDINGS_PATH="${WINDOWS_PATH_INDICATOR}${WINDOWS_APPDATA_VSCODEINSIDERS}\\user"
+    else
+        readonly VSCODEINSIDERS_USER_SETTINGS_PATH="UNKNOWN_WINDOWS_APPDATA_VSCODEINSIDERS"
+        readonly VSCODEINSIDERS_USER_KEYBINDINGS_PATH="UNKNOWN_WINDOWS_APPDATA_VSCODEINSIDERS"
+    fi
+
+    # Check if any VSCode settings path found
+    if ! [[ -d "$(wslpath "$WINDOWS_APPDATA_VSCODE")" ]] && ! [[ -d "$(wslpath "$WINDOWS_APPDATA_VSCODE")" ]]
+    then
+        echo_warning ">>> Did not find 'VSCode' or 'VSCode Insiders' settings location. <<<"
+        return 1
+    fi
 }
 
 main_stderr_red()
