@@ -22,7 +22,8 @@ library_sourcing()
 
     if [[ -z "$LIB_PATH" ]]
     then
-        LIB_PATH="$THIS_SCRIPT_PATH/../lib"
+        LIB_PATH="$(realpath "$THIS_SCRIPT_PATH/../lib")"
+        export LIB_PATH
     fi
 
     ### Source libraries ###
@@ -45,12 +46,91 @@ library_sourcing
 
 main()
 {
-    echo "STUB main() of link_files.sh"
+    find_kernel
+    find_os
+
+    guard_os
+
+    echo "Found Kernel: $found_kernel"
+    echo "Found OS: $found_os"
 }
 
 ###################
 ### END OF MAIN ###
 ###################
+
+register_help_text 'find_kernel' \
+"find_kernel
+
+Finds which kernel that is used. Native linux or
+Windows Subsystem for Linux (WSL).
+
+Output variables:
+* found_kernel:
+    - 'native' if native Linux
+    - 'wsl' if Windows Subsystem for Linux (WSL)"
+
+register_function_flags 'find_kernel'
+
+find_kernel()
+{
+    _handle_args 'find_kernel' "$@"
+
+    found_kernel='native'
+    uname -r | grep -qEi "microsoft|wsl" && found_kernel='wsl'
+}
+
+register_help_text 'find_os' \
+"find_os
+
+Finds which operating system that is used.
+
+Output variables:
+* found_os:
+    Example:
+    - 'debian' if Debian
+    - 'ubuntu' if Ubuntu"
+
+register_function_flags 'find_os'
+
+find_os()
+{
+    _handle_args 'find_os' "$@"
+
+    if ! [[ -f /etc/os-release ]]
+    then
+        echo "Found no OS information."
+        exit 1
+    fi
+
+    # $ID stores information e.g. ubuntu/debian/
+    . /etc/os-release
+
+    found_os="$ID"
+}
+
+register_help_text 'guard_os' \
+"guard_os
+
+Checks if OS is supported by the script. Exits if not.
+
+Requires 'found_os' to be set using e.g. find_os()"
+
+register_function_flags 'guard_os'
+
+guard_os()
+{
+    _handle_args 'guard_os' "$@"
+
+    case "$found_os" in
+        'ubuntu') ;;
+        'debian') ;;
+        *)
+            echo_error "The OS '$found_os' have not been specified as supported"
+            exit 1
+            ;;
+    esac
+}
 
 main_stderr_red()
 {
