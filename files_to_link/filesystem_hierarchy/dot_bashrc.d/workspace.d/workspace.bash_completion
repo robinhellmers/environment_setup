@@ -1,0 +1,67 @@
+
+_workspace_completion()
+{
+    local cur_word prev_word options machine_path tree_arg
+
+    # Find the full path of the 'workspace' script
+    workspace_path=$(which workspace)
+
+    # Check if 'workspace' was found
+    if [[ -n "$workspace_path" ]]
+    then
+        # Source the 'workspace' script
+        . "${workspace_path}" '--get-vars'
+    else
+        echo "'workspace' script not found in PATH."
+        return 1
+    fi
+
+    cur_word="${COMP_WORDS[COMP_CWORD]}"
+    prev_word="${COMP_WORDS[COMP_CWORD-1]}"
+
+    if [[ "$prev_word" == "--tree" || "$prev_word" == "-t" ]]
+    then
+        options=$(find "$yocto_trees_path" -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+        generate_compreply
+        return 0
+    fi
+
+    if [[ "$prev_word" == "--machine" || "$prev_word" == "-m" ]]
+    then
+        tree_arg="$yocto_default_tree"
+
+        # Find the argument provided to --tree, if any
+        for ((i=1; i < ${#COMP_WORDS[@]}; i++)); do
+            if [[ "${COMP_WORDS[i]}" == "--tree" && -n "${COMP_WORDS[i+1]}" ]]
+            then
+                tree_arg="${COMP_WORDS[i+1]}"
+                break
+            fi
+        done
+
+        machine_path="$yocto_trees_path/$tree_arg/builds"
+
+        if [[ -d "$machine_path" ]]
+        then
+            # Generate a list of subdirectories within the base directory
+            options=$(find "$machine_path" -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+            generate_compreply
+            return 0
+        fi
+
+        return 1
+    fi
+
+    # Default completion options or other flag-specific completions
+    options="default_option1 default_option2"
+    generate_compreply
+}
+
+generate_compreply()
+{
+    # Generate possible completion matches and output them
+    COMPREPLY=($(compgen -W "${options}" -- "$cur_word"))
+}
+
+# Register the completion function for your script
+complete -F _workspace_completion workspace

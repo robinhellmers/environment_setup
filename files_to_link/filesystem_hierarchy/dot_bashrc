@@ -1,0 +1,207 @@
+#!/bin/bash
+# Shebang used for code highlighter
+
+# If not running interactively, don't do anything
+case $- in
+    *i*) ;;
+      *) return;;
+esac
+
+
+# Hostname main machine - $HOSTNAME / uname -n
+machine_name_work=""
+
+# Choice of distrobox container manager
+export DBX_CONTAINER_MANAGER="docker"
+
+
+# Sources library and exits with good info in case of not being able to source
+source_lib()
+{
+    local lib="$1"
+
+    local func_call_file
+    func_call_file="$(basename "${BASH_SOURCE[1]}")"
+
+    local error_info
+    error_info="File '$func_call_file' requires library '$(basename "$lib")'"
+
+    if ! [[ -f "$lib" ]]
+    then
+        echo "$error_info"
+        echo "Necessary library does not exist: '$lib'"
+        return 1
+    fi
+
+    if ! source "$lib"
+    then
+        echo "$error_info"
+        echo "Could not source library even though the file exists: '$lib'"
+        return 1
+    fi
+}
+
+export -f source_lib
+
+append_to_path()
+{
+    local new_path="$1"
+
+    if [[ ! -d "$new_path" ]]
+    then
+        echo "ERROR: append_to_path - Path is not a directory: '$new_path'"
+        return 1
+    fi
+
+    # Check if already in path
+    echo $PATH | tr ':' '\n' | grep -q "^$new_path\$" &&
+        return 0
+
+    PATH="${PATH:+${PATH}:}${new_path}"
+    export PATH
+}
+
+append_to_path "$HOME/.local/bin"
+append_to_path '/mnt/c/Users/robhs/AppData/Local/Programs/Microsoft VS Code/bin'
+
+# Aliases
+source_lib "$HOME/.bashrc.d/aliases.bashrc" || return 
+
+if [[ -z "$machine_name_work" ]] 
+then
+    echo -e "${DEFAULT_BOLD_COLOR}Remember to define 'machine_name_work' in your '~/.bashrc' file.${END_COLOR}"
+    echo -e "${DEFAULT_BOLD_COLOR}Define it to the name of your host machine, given by 'uname -n'${END_COLOR}"
+fi
+
+#####
+# Backup function and execute that to not run in a loop
+#
+# backup_function_name='myfunc-original'
+# rename_function myfunc "$backup_function_name"
+# export -f $backup_function_name
+
+# myfunc() {
+#     local command="SOMEVAR=true; $backup_function_name $@"
+
+#     [[ "$login_session" == 'true' ]] && bash_opts='-il' || bash_opts='-i'
+#     # Create another bash subshell, run the command and keep the shell alive
+#     bash $bash_opts  <<< "$command; echo -e \"\n\"; exec </dev/tty"
+# }
+#
+#####
+
+machine="$(uname -n)"
+
+#####
+# Yocto tools in distrobox
+if [[ "$distrobox_type_environment" == "yocto" ]]
+then
+    . "$HOME/.bashrc.d/workspace.d/yocto_workspace.sh"
+fi
+#####
+
+#####
+# Testing in distrobox
+if [[ "$distrobox_type_environment" == "testing" ]]
+then
+    . "$HOME/.bashrc.d/workspace.d/test_workspace.sh"
+fi
+#####
+
+####
+# TMUX + VSCode
+vscode_socket=$(ls -1t /run/user/$UID/vscode-ipc-*.sock 2> /dev/null | head -1)
+export VSCODE_IPC_HOOK_CLI=${vscode_socket}
+unset vscode_socket
+####
+
+####
+
+# Map keyboard
+[[ -f ~/.Xmodmap ]] && xmodmap ~/.Xmodmap
+
+shopt -q login_shell && login_session='true' || login_session='false'
+[[ $- == *i* ]] && interactive_session='true' || interactive_session='false'
+
+[[ "$login_session" == 'true' && "$interactive_session" == 'true' ]] &&
+    remote_session='true' ||
+    remote_session='false'
+
+
+# Move hidden .files with mv as well
+shopt -s dotglob
+export HISTSIZE=10000
+export TERMINAL=gnome-terminal
+
+export EDITOR=nano
+export VISUAL=nano
+
+# -R reads characters properly
+# -X outputs to terminal persistently after quitting
+# -F outputs directory to terminal if less than one page
+export LESS='-XRF'
+
+# don't put duplicate lines or lines starting with space in the history.
+# See bash(1) for more options
+HISTCONTROL=ignoreboth
+
+# append to the history file, don't overwrite it
+shopt -s histappend
+
+# for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
+HISTSIZE=1000
+HISTFILESIZE=2000
+
+# check the window size after each command and, if necessary,
+# update the values of LINES and COLUMNS.
+shopt -s checkwinsize
+
+# If set, the pattern "**" used in a pathname expansion context will
+# match all files and zero or more directories and subdirectories.
+#shopt -s globstar
+
+# make less more friendly for non-text input files, see lesspipe(1)
+#[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
+
+
+
+# set a fancy prompt (non-color, unless we know we "want" color)
+case "$TERM" in
+    xterm-color|*-256color) color_prompt=yes;;
+esac
+
+if [ "$color_prompt" = yes ]; then
+    source_lib $HOME/.bashrc.d/prompt.bashrc  || return    
+else
+    # Set variable identifying the chroot you work in
+    [[ -z "${debian_chroot:-}" && -r /etc/debian_chroot ]] &&
+        debian_chroot=$(cat /etc/debian_chroot)
+
+    PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
+fi
+unset color_prompt
+
+# enable color support of ls and also add handy aliases
+if [ -x /usr/bin/dircolors ]; then
+    test -r "$HOME/.config/.dircolors" &&
+        eval "$(dircolors -b $HOME/.config/.dircolors)" ||
+        eval "$(dircolors -b)"
+
+    alias ls='ls --color=auto'
+fi
+
+# enable programmable completion features (you don't need to enable
+# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
+# sources /etc/bash.bashrc).
+if ! shopt -oq posix; then
+  if [ -f /usr/share/bash-completion/bash_completion ]; then
+    . /usr/share/bash-completion/bash_completion
+  elif [ -f /etc/bash_completion ]; then
+    . /etc/bash_completion
+  fi
+fi
+
+if [[ -f ~/.bashrc.d/workspace.d/workspace.bash_completion ]]
+then
+    . ~/.bashrc.d/workspace.d/workspace.bash_completion
+fi

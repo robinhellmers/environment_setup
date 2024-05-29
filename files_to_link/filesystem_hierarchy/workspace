@@ -1,0 +1,190 @@
+#!/usr/bin/env bash
+
+if [[ ! "${BASH_SOURCE[0]}" -ef "$0" ]] && [[ "$1" != '--get-vars' ]]
+then
+    echo "Hey you should execute this script, not source it!"
+    return 1
+fi
+
+############################
+### VARIABLE DEFINITIONS ###
+############################
+
+yocto_trees_path=""
+yocto_default_tree="" # E.g. "main-build"
+yocto_default_machine=""
+
+# Path to directory containing all test directories
+# The directory which contains directories named
+# e.g. recorder, storage, etc.
+tests_path=""
+test_script_path="" # To source
+
+# Container name - Shown under the 'distrobox list' command
+distrobox_container_name_yocto=""
+distrobox_container_name_test=""
+
+################################
+### END VARIABLE DEFINITIONS ###
+################################
+
+# In case only the variables above are wished to be sourced
+[[ "$1" == '--get-vars' ]] && return 0
+
+main()
+{
+    verify_initial_variables
+
+    handle_flags "$@"
+
+    local target_env="$1"
+
+    case "$target_env" in
+        'yocto')
+            local tree="$2"
+            local machine="$3"
+
+            handle_yocto "$machine" "$tree"
+            ;;
+        'test')
+            local target="$2"
+
+            handle_test "$target"
+            ;;
+        *)
+            echo "Invalid first input: $target_env"
+            echo "Choose from 'yocto' or 'test'"
+            exit 1
+    esac
+}
+
+handle_flags()
+{
+    for input in "$@"
+    do
+        if [[ "$input" == "-h" ]] || [[ "$input" == "--help" ]]
+        then
+        echo "\
+Enter a workspace, sourcing tools and enter relevant directory.
+
+Usage: . workspace <environment> ...
+
+    environment: 'yocto' or 'test'
+
+    If environment 'yocto':
+       . workspace yocto <tree> <machine>
+
+    tree: Depending on what you named the top directory. E.g. 'master'
+
+    machine: Which machine build under builds/<machine>
+    \
+"
+            exit 0
+        fi
+    done
+}
+
+handle_yocto()
+{
+    local machine="$1"
+    local tree="$2"
+
+    [[ -z "$machine" ]] && machine="$yocto_default_machine"
+    [[ -z "$tree" ]] && tree="$yocto_default_tree"
+
+    local path="$yocto_trees_path/$tree"
+
+    distrobox enter "$distrobox_container_name_yocto" \
+        --additional-flags "--env yocto_machine=$machine\
+                            --env yocto_path=$path\
+                            --env distrobox_type_environment='yocto'"
+}
+
+handle_test()
+{
+    distrobox enter "$distrobox_container_name_test" \
+        --additional-flags "--env tests_path=$tests_path\
+                            --env test_script_path=$test_script_path\
+                            --env distrobox_type_environment='testing'"
+}
+
+verify_initial_variables()
+{
+    local error_info
+    error_info="You need to define some variables in your 'workspace' script."
+
+    if [[ -z "$yocto_trees_path" ]]
+    then
+        echo -e "$error_info\nThe variable 'yocto_trees_path' is not set."
+        exit 1
+    elif [[ -z "$yocto_default_machine" ]]
+    then
+        echo -e "$error_info\nThe variable 'yocto_default_machine' is not set."
+        exit 1
+    elif [[ -z "$yocto_default_tree" ]]
+    then
+        echo -e "$error_info\nThe variable 'yocto_default_tree' is not set."
+        exit 1
+    elif [[ -z "$tests_path" ]]
+    then
+        echo -e "$error_info\nThe variable 'tests_path' is not set."
+        exit 1
+    elif [[ -z "$test_script_path" ]]
+    then
+        echo -e "$error_info\nThe variable 'test_script_path' is not set."
+        exit 1
+    elif [[ -z "$distrobox_container_name_yocto" ]]
+    then
+        echo -e "$error_info\nThe variable 'distrobox_container_name_yocto' is \
+not set."
+        echo "Should be the name of your Yocto container shown in \
+'distrobox list'."
+        exit 1
+    elif [[ -z "$distrobox_container_name_test" ]]
+    then
+        echo -e "$error_info\nThe variable 'distrobox_container_name_test' is \
+not set."
+        echo "Should be the name of your test container shown in\
+'distrobox list'."
+        exit 1
+    fi
+
+    error_info="You have not given the correct path in a variable in your \
+'workspace' script."
+
+    yocto_default_tree_path="$yocto_trees_path/$yocto_default_tree"
+    yocto_default_machine_path="$yocto_default_tree_path/builds/$yocto_default_machine"
+
+    if ! [[ -d "$yocto_trees_path" ]]
+    then
+        echo "$error_info"
+        echo "The variable 'yocto_trees_path' does not point to a directory:"
+        echo "'$yocto_trees_path'"
+        exit 1
+    elif ! [[ -d "$yocto_default_tree_path" ]]
+    then
+        echo "$error_info"
+        echo "The variable 'yocto_default_tree' does not point to a \
+default tree (directory) under 'yocto_trees_path'."
+        echo "'$yocto_default_tree_path'"
+        exit 1
+    elif ! [[ -d "$tests_path" ]]
+    then
+        echo "$error_info"
+        echo "The variable 'tests_path' does not point to a directory:"
+        echo "'$tests_path'"
+        exit 1
+    fi
+
+    if ! [[ -f "$test_script_path" ]]
+    then
+        echo "$error_info"
+        echo "The variable 'test_script_path' does not point to a file:"
+        echo "'$test_script_path'"
+        exit 1
+    fi
+}
+
+### Call main() ###
+main "$@"
+###################

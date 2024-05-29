@@ -1,0 +1,4 @@
+set tabsize 4
+set tabstospaces
+set guidestripe 80
+set guidestripe 72

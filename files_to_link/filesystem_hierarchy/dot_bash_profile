@@ -1,0 +1,14 @@
+#!/bin/bash
+# Shebang for highlight identification
+# Not supposed to be executed
+
+if [[ -n "$TMUX" && -z "$TMUX_TOP_SHELL_LEVEL" ]]
+then
+    # Used by 'exit' command override
+    # Child processes will not have this
+    # Should ask if to exit tmux if at this shell level
+    export TMUX_TOP_SHELL_LEVEL="$SHLVL"
+fi
+
+[[ -f "$HOME/.bashrc" ]] && BASH_PROFILE=true source ~/.bashrc
+
