@@ -19,6 +19,7 @@ library_sourcing()
     unset -f library_sourcing
 
     local -r THIS_SCRIPT_PATH="$(tmp_find_script_path)"
+    readonly REPO_FILESYSTEM_HIERARCHY="${THIS_SCRIPT_PATH}/filesystem_hierarchy"
 
     if [[ -z "$LIB_PATH" ]]
     then
@@ -51,8 +52,14 @@ main()
 
     guard_os
 
-    echo "Found Kernel: $found_kernel"
-    echo "Found OS: $found_os"
+    mappings=()
+    add_filesystem_hierarchy_files_to_mappings_array
+
+    echo "mappings array entries:"
+    for mapping in "${mappings[@]}"
+    do
+        echo "- '$mapping'"
+    done
 }
 
 ###################
@@ -130,6 +137,43 @@ guard_os()
             exit 1
             ;;
     esac
+}
+
+register_help_text 'add_filesystem_hierarchy_files_to_mappings_array' \
+"add_filesystem_hierarchy_files_to_mappings_array
+
+Finds all files under the 'REPO_FILESYSTEM_HIERARCHY' path and adds entries for
+each in the array 'mappings'.
+
+Output array:
+* mappings:
+    Entry structure:
+        '<repo file>:<new symlink file>'
+
+        Where <new symlink file> is the name of the symlink file which will
+        point to <repo file>. The <new symlink file> is created by replacing
+        'REPO_FILESYSTEM_HIERARCHY' in <repo file> with 'HOME' as well as
+        replacing filename prefix 'dot_' with and actual dot '.'."
+
+register_function_flags 'add_filesystem_hierarchy_files_to_mappings_array'
+
+add_filesystem_hierarchy_files_to_mappings_array()
+{
+    _handle_args 'add_filesystem_hierarchy_files_to_mappings_array' "$@"
+
+    # Find files in 'filesystem_hierarchy/' and store in array 'repo_files'
+    mapfile -t repo_files < <(find "${REPO_FILESYSTEM_HIERARCHY}" -type f)
+
+    # Add 'repo_files' to array 'mappings' with '<repo_file>:<destination_symlink>'
+    for repo_file in "${repo_files[@]}"
+    do
+        # Replace REPO_FILESYSTEM_HIERARCHY with HOME
+        new_symlink="${repo_file/#${REPO_FILESYSTEM_HIERARCHY}/$HOME}"
+        # Replace prefix 'dot_' with '.'
+        new_symlink="${new_symlink//dot_/\.}"
+
+        mappings+=("${repo_file}:${new_symlink}")
+    done
 }
 
 main_stderr_red()
