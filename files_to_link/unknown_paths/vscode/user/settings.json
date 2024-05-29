@@ -1,0 +1,275 @@
+{
+    "workbench.colorTheme": "Default Dark Modern",
+    "colorize.colorized_colors": [
+        "HEXA"
+    ],
+    "colorize.languages": [
+        "yaml"
+    ],
+    "security.workspace.trust.untrustedFiles": "open",
+    "latex-workshop.latex.autoClean.run": "onBuilt",
+    "latex-workshop.latex.autoBuild.run": "onSave",
+    "latex-workshop.latex.recipes": [
+        {
+            "name": "latexmk",
+            "tools": [
+                "latexmk"
+            ]
+        },
+        {
+            "name": "pdflatex - bibtex - pdflatex x2",
+            "tools": [
+                "pdflatex",
+                "bibtex",
+                "pdflatex",
+                "pdflatex"
+            ]
+        }
+    ],
+    "latex-workshop.latex.tools": [
+        {
+            "name": "latexmk",
+            "command": "latexmk",
+            "args": [
+                "-synctex=1",
+                "-interaction=nonstopmode",
+                "-file-line-error",
+                "-pdf",
+                "-shell-escape",
+                "-outdir=%OUTDIR%",
+                "%DOC%"
+            ],
+            "env": {}
+        },
+        {
+            "name": "pdflatex",
+            "command": "pdflatex",
+            "args": [
+                "-synctex=1",
+                "-interaction=nonstopmode",
+                "-file-line-error",
+                "%DOC%"
+            ],
+            "env": {}
+        },
+        {
+            "name": "bibtex",
+            "command": "bibtex",
+            "args": [
+                "%DOCFILE%"
+            ],
+            "env": {}
+        }
+    ],
+    "editor.minimap.enabled": false,
+    "workbench.editor.wrapTabs": true,
+    "keyboard.dispatch": "keyCode",
+    "workbench.startupEditor": "none",
+    "terminal.integrated.profiles.linux": {
+        "sh": {
+            "path": "bash",
+            "icon": "terminal-linux"
+        },
+        "bash": {
+            "path": "bash",
+            "icon": "terminal-bash"
+        },
+        "zsh": {
+            "path": "zsh"
+        }
+    },
+    "terminal.integrated.defaultProfile.linux": "sh",
+    "remote.SSH.remotePlatform": {
+        "recorder": "linux"
+    },
+    "editor.rulers": [
+        72,
+        80
+    ],
+    "gerrit.auth.password": "oVctd9RFbs9o/sEYjaFKKwOHcacsBdf4D4VmY4BV4Q",
+    "gerrit.auth.url": "https://gittools.se.axis.com/gerrit",
+    "gerrit.auth.username": "robinh",
+    "gerrit.changesViews": [
+        {
+            "title": "Dashboard",
+            "panels": [
+                {
+                    "title": "Your Turn",
+                    "refreshInterval": 300,
+                    "defaultCollapsed": false,
+                    "initialFetchCount": 25,
+                    "extraEntriesFetchCount": 25,
+                    "filters": [
+                        "attention:self"
+                    ]
+                },
+                {
+                    "title": "Work In Progress",
+                    "refreshInterval": 300,
+                    "defaultCollapsed": false,
+                    "initialFetchCount": 25,
+                    "extraEntriesFetchCount": 25,
+                    "filters": [
+                        "is:open",
+                        "owner:self",
+                        "is:wip"
+                    ]
+                },
+                {
+                    "title": "Outgoing Reviews",
+                    "refreshInterval": 300,
+                    "defaultCollapsed": false,
+                    "initialFetchCount": 25,
+                    "extraEntriesFetchCount": 25,
+                    "filters": [
+                        "is:open",
+                        "owner:self",
+                        "-is:wip"
+                    ]
+                },
+                {
+                    "title": "Incoming Reviews",
+                    "refreshInterval": 300,
+                    "defaultCollapsed": false,
+                    "initialFetchCount": 25,
+                    "extraEntriesFetchCount": 25,
+                    "filters": [
+                        "is:open",
+                        "-owner:self",
+                        "-is:wip",
+                        "reviewer:self"
+                    ]
+                },
+                {
+                    "title": "CCed on",
+                    "refreshInterval": 300,
+                    "defaultCollapsed": false,
+                    "initialFetchCount": 25,
+                    "extraEntriesFetchCount": 25,
+                    "filters": [
+                        "is:open",
+                        "cc:self"
+                    ]
+                },
+                {
+                    "title": "Recently Closed",
+                    "refreshInterval": 1500,
+                    "defaultCollapsed": true,
+                    "initialFetchCount": 10,
+                    "extraEntriesFetchCount": 25,
+                    "filters": [
+                        "is:closed",
+                        "-is:wip OR owner:self",
+                        "owner:self OR reviewer:self OR cc:self"
+                    ]
+                }
+            ]
+        },
+        {
+            "title": "Starred",
+            "panels": [
+                {
+                    "title": "Starred",
+                    "refreshInterval": 500,
+                    "defaultCollapsed": false,
+                    "initialFetchCount": 25,
+                    "extraEntriesFetchCount": 25,
+                    "filters": [
+                        "is:starred"
+                    ]
+                }
+            ]
+        },
+        {
+            "title": "Watched",
+            "panels": [
+                {
+                    "title": "Watched",
+                    "refreshInterval": 500,
+                    "defaultCollapsed": false,
+                    "initialFetchCount": 25,
+                    "extraEntriesFetchCount": 25,
+                    "filters": [
+                        "is:watched",
+                        "is:open"
+                    ]
+                }
+            ]
+        },
+        {
+            "title": "Draft",
+            "panels": [
+                {
+                    "title": "Draft",
+                    "refreshInterval": 500,
+                    "defaultCollapsed": false,
+                    "initialFetchCount": 25,
+                    "extraEntriesFetchCount": 25,
+                    "filters": [
+                        "has:draft"
+                    ]
+                }
+            ]
+        },
+        {
+            "title": "My Changes",
+            "panels": [
+                {
+                    "title": "My Changes",
+                    "refreshInterval": 500,
+                    "defaultCollapsed": false,
+                    "initialFetchCount": 25,
+                    "extraEntriesFetchCount": 25,
+                    "filters": [
+                        "is:open",
+                        "owner:self"
+                    ]
+                }
+            ]
+        }
+    ],
+    "git.openRepositoryInParentFolders": "always",
+    "editor.renderWhitespace": "all",
+    "diffEditor.ignoreTrimWhitespace": false,
+    "gitlens.views.commitDetails.files.layout": "tree",
+    "workbench.tree.indent": 18,
+    "workbench.tree.renderIndentGuides": "always",
+    "workbench.colorCustomizations": {
+        "tree.indentGuidesStroke": "#008070",
+        "tab.activeBorderTop": "#000000",
+        "tab.activeBorder": "#a70000",
+        "tab.unfocusedActiveBorderTop": "#000000",
+        "tab.unfocusedActiveBorder": "#a70000"
+    },
+    "workbench.editor.doubleClickTabToToggleEditorGroupSizes": "maximize",
+    "gitlens.autolinks": [
+        {
+            "prefix": "STOR-",
+            "url": "https://jira.se.axis.com/browse/STOR-<num>"
+        },
+        {
+            "prefix": "CLFWFTRECO-",
+            "url": "https://jira.se.axis.com/browse/CLFWFTRECO-<num>"
+        }
+    ],
+    "files.readonlyInclude": {
+        "/usr/include/**": true
+    },
+    "editor.find.cursorMoveOnType": false,
+    "files.watcherExclude": {
+        "tmp/**": true,
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/node_modules/*/**": true,
+        "**/.hg/store/**": true
+    },
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true
+    },
+    "workbench.activityBar.location": "top"
+}
