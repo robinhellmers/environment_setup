@@ -60,12 +60,7 @@ main()
 {
     _handle_args_main "$@"
 
-    local this_file="$(find_path 'this_file' "${#BASH_SOURCE[@]}" "${BASH_SOURCE[@]}")"
-
-    [[ "$verbose" == 'true' ]] &&
-        echo -e "\nthis_file: $this_file"
-
-    func_lib 123
+    "${PROJECT_BASE_PATH}/files_to_link/link_files.sh"
 }
 
 ###################
