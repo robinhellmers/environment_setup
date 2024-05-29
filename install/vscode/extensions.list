@@ -1,0 +1,22 @@
+# Git
+eamodio.gitlens
+
+# LaTeX
+james-yu.latex-workshop
+
+# Markdown
+davidanson.vscode-markdownlint
+
+# C/C++
+ms-vscode.cpptools-extension-pack
+ms-vscode.makefile-tools
+
+# Other
+natqe.reload
+kamikillerto.vscode-colorize
+
+# STM32 debugging
+marus25.cortex-debug
+
+# Yocto
+yocto-project.yocto-bitbake
