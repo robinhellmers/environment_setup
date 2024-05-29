@@ -514,7 +514,7 @@ register_help_text 'validate_linux_file_path' \
 
 Validates the Linux file path. Tries to create directory if within \$HOME.
 
-linux_file:
+Arguments:
 <linux_file>:
     Path and filename of Linux file.
 
@@ -532,7 +532,7 @@ register_function_flags 'validate_linux_file_path'
 validate_linux_file_path()
 {
     _handle_args 'validate_linux_file_path' "$@"
-    local linux_file="$1"
+    local linux_file="${non_flagged_args[0]}"
 
     return_code=255
 
