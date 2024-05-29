@@ -88,7 +88,8 @@ main()
         if [[ "$is_windows_symlink" == 'true' ]]
         then
             handle_windows_symlink "$repo_file" "$new_symlink"
-            continue
+        else
+            handle_linux_symlink "$repo_file" "$new_symlink"
         fi
     done
 }
@@ -344,6 +345,61 @@ handle_windows_symlink()
     return 0
 }
 
+register_help_text 'handle_linux_symlink' \
+"handle_linux_symlink <repo_file> <new_symlink>
+
+Handles everything related to check and create a Linux symlink to a Linux path.
+
+Arguments:
+<repo_file>:
+    Path and filename of Linux file which symlink shall point to.
+<new_symlink>:
+    Path and filename of Linux symlink to create.
+
+Exit code:
+    0 - No special indication
+"
+
+register_function_flags 'handle_linux_symlink'
+
+handle_linux_symlink()
+{
+    _handle_args 'handle_linux_symlink' "$@"
+
+    local repo_file="${non_flagged_args[0]}"
+    local new_symlink="${non_flagged_args[1]}"
+
+    validate_linux_file "$repo_file"
+
+    case "$return_code" in
+        0)  ;;
+        1)
+            echo_warning "Skipped"
+            return 0
+            ;;
+        *)
+            unhandled_return_code
+            return 0
+            ;;
+    esac
+
+    validate_linux_file_path "$new_symlink"
+
+    case "$return_code" in
+        0)  ;;
+        1)
+            echo_warning "Skipped"
+            return 0
+            ;;
+        *)
+            unhandled_return_code
+            return 0
+            ;;
+    esac
+
+    echo "Checking OK"
+}
+
 register_help_text 'validate_linux_file' \
 "validate_linux_file <linux_file>
 
@@ -447,6 +503,83 @@ validate_windows_file_path()
                 return 0
                 ;;
         esac
+    fi
+
+    return_code=0
+    return 0
+}
+
+register_help_text 'validate_linux_file_path' \
+"validate_linux_file_path <linux_file>
+
+Validates the Linux file path. Tries to create directory if within \$HOME.
+
+linux_file:
+<linux_file>:
+    Path and filename of Linux file.
+
+Output variables:
+* return_code:
+    0: Path of file exists
+    1: Path of file does not exist
+
+Exit code:
+    0 - Always
+"
+
+register_function_flags 'validate_linux_file_path'
+
+validate_linux_file_path()
+{
+    _handle_args 'validate_linux_file_path' "$@"
+    local linux_file="$1"
+
+    return_code=255
+
+    # Check if symlink is empty indicating ':' might be missing or there's no target path
+    if [[ -z "$linux_file" ]]
+    then
+        echo_error "Error: Invalid format or missing target path for mapping."
+        return_code=1
+        return 0
+    fi
+
+    # Ensure the target directory exists
+    local linux_dir_path
+    linux_dir_path=$(dirname "$linux_file")
+
+    if ! [[ -d "$linux_dir_path" ]]
+    then
+        local tried_creating_dir='false'
+        # If path follows given specification, try to create it
+        case "$linux_dir_path" in
+            "$HOME"*)
+                mkdir -p "$linux_dir_path"
+                tried_creating_dir='true'
+                ;;
+            *)  ;;
+        esac
+
+        if ! [[ -d "$linux_dir_path" ]]
+        then
+            if [[ "$tried_creating_dir" == 'true' ]]
+            then
+                echo_error "Error: The directory for '$new_symlink' does not exist and could not be created."
+            else
+                echo_error "Error: The directory for '$new_symlink' does not exist but did not try to create it."
+            fi
+
+            return_code=1
+            return 0
+        fi
+    fi
+
+    # Check if the source file exists
+    if [[ ! -e "$repo_file" ]]
+    then
+        echo_error "Error: Source file '$repo_file' does not exist."
+        return_code=1
+        return 0
     fi
 
     return_code=0
