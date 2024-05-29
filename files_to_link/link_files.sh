@@ -413,7 +413,20 @@ handle_linux_symlink()
             ;;
     esac
 
-    echo "Checking OK"
+    backup_and_create_linux_symlink "$repo_file" "$new_symlink"
+
+    case "$return_code" in
+        0)
+            echo_success "Created symlink '$new_symlink' -> '$repo_file'"
+            ;;
+        1)
+            echo_warning "Already done. No action taken."
+            ;;
+        2)  ;;
+        *)
+            unhandled_return_code "$return_code"
+            ;;
+    esac
 }
 
 register_help_text 'validate_linux_file' \
@@ -734,6 +747,79 @@ backup_and_create_windows_symlink()
     return_code=0
     return 0
 }
+
+register_help_text 'backup_and_create_linux_symlink' \
+"backup_and_create_linux_symlink <repo_file> <linux_symlink>
+
+Backup existing file at <linux_symlink> and creates a Linux symlink pointing
+to the repository file.
+
+Arguments:
+<repo_file>:
+    Path and filename of Linux file which symlink shall point to.
+<linux_symlink>:
+    Path and filename of Linux symlink to create.
+
+Output variables:
+* return_code:
+    0: Successfully created symlink & potential backup
+    1: Already existing symlink
+    2: Error
+
+Exit code:
+    0 - Always
+"
+
+register_function_flags 'backup_and_create_linux_symlink'
+
+backup_and_create_linux_symlink()
+{
+    _handle_args 'backup_and_create_linux_symlink' "$@"
+    local repo_file="${non_flagged_args[0]}"
+    local linux_symlink="${non_flagged_args[1]}"
+
+    return_code=255
+
+    repo_file="$(realpath "$repo_file")"
+
+    # Check if symlink already exists
+    if [[ -L "$new_symlink" ]]
+    then
+        local actual_target
+        actual_target=$(readlink "$new_symlink")
+
+        # Check if the symlink points to the correct path
+        if [[ "$actual_target" == "$repo_file" ]]
+        then
+            echo_highlight "Symlink '$new_symlink' already points to '$repo_file'"
+            return_code=1
+            return 0
+        fi
+    fi
+
+    # Check if file, directory or symlink
+    if [[ -e "$new_symlink" ]]
+    then
+        # Attempt to create a backup and continue to next file if backup fails
+        if ! backup_file "$new_symlink"
+        then
+            return_code=2
+            return 0
+        fi
+    fi
+
+    # Attempt to create the symlink and check if it succeeds
+    if ! ln -sf "$repo_file" "$new_symlink"
+    then
+        echo_error "Error: Failed to create symlink '$new_symlink' -> '$repo_file'."
+        return_code=2
+        return 0
+    fi
+
+    return_code=0
+    return 0
+}
+
 unhandled_return_code()
 {
     echo_error "Unhandled return code. Check return code: '$return_code'"
