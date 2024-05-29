@@ -64,11 +64,6 @@ main()
 
     find_vscode_settings_path
 
-    echo "VSCODE_USER_SETTINGS_PATH:            '$VSCODE_USER_SETTINGS_PATH'"
-    echo "VSCODE_USER_KEYBINDINGS_PATH:         '$VSCODE_USER_KEYBINDINGS_PATH'"
-    echo "VSCODEINSIDERS_USER_SETTINGS_PATH:    '$VSCODEINSIDERS_USER_SETTINGS_PATH'"
-    echo "VSCODEINSIDERS_USER_KEYBINDINGS_PATH: '$VSCODEINSIDERS_USER_KEYBINDINGS_PATH'"
-
     mappings+=(
         "${REPO_UNKNOWN_PATHS}/vscode/user/settings.json:${VSCODE_USER_SETTINGS_PATH}/settings.json"
         "${REPO_UNKNOWN_PATHS}/vscode/user/keybindings.json:${VSCODE_USER_KEYBINDINGS_PATH}/keybindings.json"
@@ -76,11 +71,25 @@ main()
         "${REPO_UNKNOWN_PATHS}/vscode_insiders/user/keybindings.json:${VSCODEINSIDERS_USER_KEYBINDINGS_PATH}/keybindings.json"
     )
 
-    echo
-    echo "mappings array entries:"
-    for mapping in "${mappings[@]}"
+    # Process mappings to create backups and symlinks
+    for file_mapping in "${mappings[@]}"
     do
-        echo "- '$mapping'"
+        # Split string into 2 parts using the : as separator
+        IFS=':' read -r repo_file new_symlink <<< "$file_mapping"
+
+        echo
+        echo "Checking symlink for repository file '$(basename "$repo_file")'"
+
+        # Check if Windows symlink
+        [[ "$new_symlink" == "$WINDOWS_PATH_INDICATOR"* ]] &&
+            is_windows_symlink='true' ||
+            is_windows_symlink='false'
+
+        if [[ "$is_windows_symlink" == 'true' ]]
+        then
+            handle_windows_symlink "$repo_file" "$new_symlink"
+            continue
+        fi
     done
 }
 
@@ -275,6 +284,179 @@ find_vscode_settings_path()
         echo_warning ">>> Did not find 'VSCode' or 'VSCode Insiders' settings location. <<<"
         return 1
     fi
+}
+
+register_help_text 'handle_windows_symlink' \
+"handle_windows_symlink <repo_file> <new_symlink>
+
+Handles everything related to check and create a Windows symlink to a Linux
+path.
+
+Arguments:
+<repo_file>:
+    Path and filename of Linux file which symlink shall point to.
+<new_symlink>:
+    Path and filename of Windows symlink to create.
+
+Exit code:
+    0 - No special indication
+"
+
+register_function_flags 'handle_windows_symlink'
+
+handle_windows_symlink()
+{
+    _handle_args 'handle_windows_symlink' "$@"
+
+    local repo_file="${non_flagged_args[0]}"
+    local new_symlink="${non_flagged_args[1]}"
+
+    validate_linux_file "$repo_file"
+
+    case "$return_code" in
+        0)  ;;
+        1)
+            echo_warning "Skipped"
+            return 0
+            ;;
+        *)
+            unhandled_return_code
+            return 0
+            ;;
+    esac
+
+    validate_windows_file_path "$new_symlink" # Creates 'windows_file_repaired'
+    new_symlink="$windows_file_repaired"
+
+    case "$return_code" in
+        0)  ;;
+        1)
+            echo_warning "Skipped"
+            return 0
+            ;;
+        *)
+            unhandled_return_code
+            return 0
+            ;;
+    esac
+
+    echo "Checking OK"
+    return 0
+}
+
+register_help_text 'validate_linux_file' \
+"validate_linux_file <linux_file>
+
+Checks that given linux file exists. Prints error if not.
+
+Arguments:
+<linux_file>:
+    Path and filename of linux file.
+
+Output variables:
+* return_code:
+    0: File exists
+    1: File does not exist
+
+Exit code:
+    0 - Always
+"
+
+register_function_flags 'validate_linux_file'
+
+validate_linux_file()
+{
+    _handle_args 'validate_linux_file' "$@"
+    local linux_file="${non_flagged_args[0]}"
+
+    if [[ ! -e "$linux_file" ]]
+    then
+        echo_error "Error: File '$linux_file' does not exist."
+        return_code=1
+        return 0
+    fi
+
+    return_code=0
+    return 0
+}
+
+register_help_text 'validate_windows_file_path' \
+"validate_windows_file_path <windows_file>
+
+Validates the Windows file path. Included check for previously unknown paths
+marked in <windows_file>.
+
+Arguments:
+<windows_file>:
+    Path and filename of Windows file. Can be prefixed with value of
+    WINDOWS_PATH_INDICATOR.
+
+Output variables:
+* return_code:
+    0: Path of file exists
+    1: Path of file does not exist
+
+Exit code:
+    0 - Always
+"
+
+register_function_flags 'validate_windows_file_path'
+
+validate_windows_file_path()
+{
+    _handle_args 'validate_windows_file_path' "$@"
+    local windows_file="${non_flagged_args[0]}"
+
+    return_code=255
+
+    # Remove potential Windows path indicator prefix
+    windows_file="${windows_file#"$WINDOWS_PATH_INDICATOR"}"
+
+    # Check if path is empty indicating ':' might be missing or there's no target path
+    if [[ -z "$windows_file" ]]
+    then
+        echo_error "Error: Invalid format of mapping, path empty. Check mapping array."
+        return_code=1
+        return 0
+    fi
+
+    # Convert potential / to \
+    windows_file_repaired="${windows_file//\//\\}"
+    windows_file="$windows_file_repaired"
+
+    # Ensure the directory exists
+    local windows_dir_linux_path
+    windows_dir_linux_path=$(dirname "$(wslpath "$windows_file")")
+
+    if ! [[ -d "$windows_dir_linux_path" ]]
+    then
+        case "$windows_dir_linux_path" in
+            "UNKNOWN_WINDOWS_APPDATA_VSCODE"*)
+                echo_highlight "VSCode target directory don't exist and thereby probably not VSCode itself."
+                return_code=1
+                return 0
+                ;;
+            "UNKNOWN_WINDOWS_APPDATA_VSCODEINSIDERS"*)
+                echo_highlight "VSCode Insiders target directory don't exist and thereby probably not VSCode Insiders itself."
+                return_code=1
+                return 0
+                ;;
+            *)
+                echo_error "Windows directory does not exist: $windows_dir_linux_path"
+                return_code=1
+                return 0
+                ;;
+        esac
+    fi
+
+    return_code=0
+    return 0
+}
+
+unhandled_return_code()
+{
+    echo_error "Unhandled return code. Check return code: '$return_code'"
+    return 0
 }
 
 main_stderr_red()
