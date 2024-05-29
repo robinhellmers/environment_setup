@@ -20,6 +20,7 @@ library_sourcing()
 
     local -r THIS_SCRIPT_PATH="$(tmp_find_script_path)"
     readonly REPO_FILESYSTEM_HIERARCHY="${THIS_SCRIPT_PATH}/filesystem_hierarchy"
+    readonly REPO_UNKNOWN_PATHS="${THIS_SCRIPT_PATH}/unknown_paths"
 
     if [[ -z "$LIB_PATH" ]]
     then
@@ -67,6 +68,13 @@ main()
     echo "VSCODE_USER_KEYBINDINGS_PATH:         '$VSCODE_USER_KEYBINDINGS_PATH'"
     echo "VSCODEINSIDERS_USER_SETTINGS_PATH:    '$VSCODEINSIDERS_USER_SETTINGS_PATH'"
     echo "VSCODEINSIDERS_USER_KEYBINDINGS_PATH: '$VSCODEINSIDERS_USER_KEYBINDINGS_PATH'"
+
+    mappings+=(
+        "${REPO_UNKNOWN_PATHS}/vscode/user/settings.json:${VSCODE_USER_SETTINGS_PATH}/settings.json"
+        "${REPO_UNKNOWN_PATHS}/vscode/user/keybindings.json:${VSCODE_USER_KEYBINDINGS_PATH}/keybindings.json"
+        "${REPO_UNKNOWN_PATHS}/vscode_insiders/user/settings.json:${VSCODEINSIDERS_USER_SETTINGS_PATH}/settings.json"
+        "${REPO_UNKNOWN_PATHS}/vscode_insiders/user/keybindings.json:${VSCODEINSIDERS_USER_KEYBINDINGS_PATH}/keybindings.json"
+    )
 
     echo
     echo "mappings array entries:"
