@@ -290,8 +290,8 @@ find_vscode_settings_path()
 register_help_text 'handle_windows_symlink' \
 "handle_windows_symlink <repo_file> <new_symlink>
 
-Handles everything related to check and create a Windows symlink to a Linux
-path.
+Handles everything related to check, backup and create a Windows symlink to a
+Linux path.
 
 Arguments:
 <repo_file>:
@@ -341,7 +341,23 @@ handle_windows_symlink()
             ;;
     esac
 
-    echo "Checking OK"
+    backup_and_create_windows_symlink "$repo_file" "$new_symlink"
+
+    case "$return_code" in
+        0)
+            echo_success "Created symlink '$new_symlink' -> '$repo_file'"
+            ;;
+        1)
+            echo_warning "Already done. No action taken."
+            return 0
+            ;;
+        2)  ;;
+        *)
+            unhandled_return_code "$return_code"
+            return 0
+            ;;
+    esac
+
     return 0
 }
 
@@ -586,6 +602,138 @@ validate_linux_file_path()
     return 0
 }
 
+register_help_text 'backup_file' \
+"backup_file <file>
+
+Ensures that file is backed up at the same location of <file> but with a suffix
+including a number. This is done without overwriting any existing backup.
+
+Arguments:
+<file>:
+    Path and filename of Linux file which symlink shall point to.
+
+Exit code:
+    0: Successful backup
+    1: Failed with backup
+"
+
+register_function_flags 'backup_file'
+
+backup_file()
+{
+    _handle_args 'backup_file' "$@"
+    local file="${non_flagged_args[0]}"
+
+    local backup_base="${file}.backup"
+    local backup_file=""
+    for (( i=1; i <= 100; i++ ))
+    do
+        backup_file="${backup_base}-${i}"
+        if [[ ! -e "$backup_file" ]]; then
+            mv "$file" "$backup_file"
+            echo_highlight "Backed up '$file' to '$backup_file'"
+            return 0  # Successful backup
+        fi
+    done
+    echo_error "Error: Could not create backup for '$file', more than 100 backups exist."
+    return 1  # Failed to create backup
+}
+
+register_help_text 'backup_and_create_windows_symlink' \
+"backup_and_create_windows_symlink <repo_file> <windows_symlink>
+
+Backup existing file at <windows_symlink> and creates a Windows symlink pointing
+to the repository file.
+
+Arguments:
+<repo_file>:
+    Path and filename of Linux file which symlink shall point to.
+<windows_symlink>:
+    Path and filename of Windows symlink to create.
+
+Output variables:
+* return_code:
+    0: Successfully created symlink & potential backup
+    1: Already existing symlink
+    2: Error
+
+Exit code:
+    0 - Always
+"
+
+register_function_flags 'backup_and_create_windows_symlink'
+
+backup_and_create_windows_symlink()
+{
+    _handle_args 'backup_and_create_windows_symlink' "$@"
+    local repo_file="${non_flagged_args[0]}"
+    local windows_symlink="${non_flagged_args[1]}"
+
+    return_code=255
+
+    # Remove potential Windows path indicator prefix
+    windows_file="${windows_file#"$WINDOWS_PATH_INDICATOR"}"
+    # Convert to Windows path
+    repo_file_windows_path="$(wslpath -w "$repo_file")"
+
+    # Windows symlink verification. Create expected output
+    match_repo_file="$(realpath "$repo_file")" # Target file might be a symlink
+    match_repo_file="${match_repo_file:1}" # Remove initial / and
+    match_repo_file="${match_repo_file//\//\\}" # Convert rest of / to \ with windows path
+    match_repo_file="\\${WSL_DISTRO_NAME}\\${match_repo_file}]"
+
+    # Avoiding cmd error about UNC (WSL) cwd path not being supported
+    pushd "$(dirname "$(wslpath "$windows_symlink")")" >/dev/null
+    # Get info about potential already existing symlink
+    symlink_info="$(cmd.exe /c dir /a:l "${windows_symlink}" 2>&1 | grep '<SYMLINK>')"
+    popd >/dev/null
+
+    # Check if symlink already exists and if pointing to correct location
+    # -F to not evaluate \ in string
+    if grep -qF "$match_repo_file" <<< "$symlink_info"
+    then
+        echo_highlight "Windows symlink '$windows_symlink' already points to '$repo_file'"
+        return_code=1
+        return 0
+    fi
+
+    # Check if file/symlink exists
+    if [[ -e "$(wslpath "$windows_symlink")" ]] || [[ -n "$symlink_info" ]]
+    then
+        # Attempt to create a backup and continue to next file if backup fails
+        if ! backup_file "$(wslpath "$windows_symlink")"
+        then
+            return_code=2
+            return 0
+        fi
+    fi
+
+    local info
+    # Avoiding cmd error about UNC (WSL) cwd path not being supported
+    pushd "$(dirname "$(wslpath "$windows_symlink")")" >/dev/null
+    # Attempt to create the symlink
+    info="$(cmd.exe /c mklink "$windows_symlink" "$repo_file_windows_path" 2>&1)"; exit_code=$?
+    popd >/dev/null
+
+    if (( exit_code != 0 ))
+    then
+        echo_error "Error: Failed to create symlink '$windows_symlink' -> '$repo_file'."
+
+        if grep -q 'You do not have sufficient privilege to perform this operation.' <<< "$info"
+        then
+            echo_error "       Not sufficient Windows Command Prompt (cmd) privilege. Run WSL Windows as Admin and re-run script."
+        else
+            printf "Info:"
+            [[ -n "$info" ]] && printf "\n$info\n" || printf " No extra information available\n"
+        fi
+
+        return_code=2
+        return 0
+    fi
+
+    return_code=0
+    return 0
+}
 unhandled_return_code()
 {
     echo_error "Unhandled return code. Check return code: '$return_code'"
