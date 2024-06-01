@@ -93,14 +93,6 @@ create_extensions_to_be_installed_array()
     done
 }
 
-command_exists()
-{
-    local cmd="$1"
-
-    # 'hash' ignores aliases
-    hash "$1" >/dev/null 2>&1
-}
-
 filter_input()
 {
     local cmd="$1"
