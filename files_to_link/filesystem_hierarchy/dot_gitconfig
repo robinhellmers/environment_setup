@@ -1,3 +1,6 @@
+[user]
+    name = Robin Hellmers
+    email = robin.hellmers@knightec.se
 [rebase]
 	autoSquash = true
 [alias]
