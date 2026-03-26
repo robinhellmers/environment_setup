@@ -62,7 +62,7 @@ append_to_path()
 }
 
 append_to_path "$HOME/.local/bin"
-append_to_path '/mnt/c/Users/robhs/AppData/Local/Programs/Microsoft VS Code/bin'
+append_to_path '/mnt/c/Users/s103496/AppData/Local/Programs/Microsoft VS Code/bin'
 
 # Aliases
 source_lib "$HOME/.bashrc.d/aliases.bashrc" || return 
