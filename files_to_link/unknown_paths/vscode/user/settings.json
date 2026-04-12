@@ -1,5 +1,4 @@
 {
-    "workbench.colorTheme": "Default Dark Modern",
     "colorize.colorized_colors": [
         "HEXA"
     ],
@@ -271,5 +270,19 @@
         "**/.DS_Store": true,
         "**/Thumbs.db": true
     },
-    "workbench.activityBar.location": "top"
+    "workbench.activityBar.location": "top",
+    // "editor.fontFamily": "Fira Code, Consolas, 'Courier New', monospace",
+    // "editor.fontLigatures": "'true', 'ss02'"// <=, >=
+    // "editor.fontFamily": "JetBrains Mono, Consolas, 'Courier New', monospace",
+    "editor.fontFamily": "Cascadia Code, Consolas, 'Courier New', monospace",
+    "editor.fontLigatures": true,
+    "dev.containers.dockerPath": "podman",
+    "github.copilot.enable": {
+        "*": false,
+        "plaintext": false,
+        "markdown": false,
+        "scminput": false
+    },
+    "workbench.colorTheme": "Dark Modern",
+    // "editor.fontSize": 10,
 }

@@ -52,5 +52,14 @@
         "key": "ctrl+k ctrl+x",
         "command": "-editor.action.trimTrailingWhitespace",
         "when": "editorTextFocus && !editorReadonly"
+    },
+    {
+        "key": "ctrl+9",
+        "command": "github.copilot.completions.toggle"
+    },
+    {
+        "key": "ctrl+shift+h",
+        "command": "workbench.action.tasks.runTask",
+        "args": "C: build and run active file"
     }
 ]
