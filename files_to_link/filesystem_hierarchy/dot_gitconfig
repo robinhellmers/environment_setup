@@ -202,8 +202,7 @@ git lg HEAD -10; \
 	required = true
 	clean = git-lfs clean -- %f
 [credential]
-	helper = 
-	helper = /usr/local/bin/git-credential-manager
+	helper = "!f() { /home/hellmers/.vscode-server/bin/41dd792b5e652393e7787322889ed5fdc58bd75b/node /tmp/vscode-remote-containers-b2eb5fcb-f4c1-4f88-8424-e98bc8f4bcdd.js git-credential-helper $*; }; f"
 	credentialStore = gpg
 [credential "https://dev.azure.com"]
 	useHttpPath = true

@@ -7,205 +7,6 @@ case $- in
       *) return;;
 esac
 
-# For running crontab. Specifically 'drop-cache-if-idle' for WSL2 RAM bug
-[ -z "$(ps -ef | grep cron | grep -v grep)" ] &&
-    sudo /etc/init.d/cron start &> /dev/null
-
-alias db=distrobox
-
-export BOARD='board_nucleo_g4'
-export B="$BOARD"
-
-cubemx() {
-    # config
-    local config_dir="$HOME/.config/cubemx"
-    local config_file="$config_dir/default_version"
-
-    # load saved default or fallback
-    if [[ -f "$config_file" ]]; then
-        version="$(<"$config_file")"
-    else
-        version="6.15.0"
-    fi
-
-    local ioc_file=""
-    local list_only=false
-    local set_default=false
-    local version_set=false
-
-    # Reset getopts
-    OPTIND=1
-
-    # parse flags: -l (list), -v <version>, -d (set default)
-    while getopts ":lv:d" opt; do
-        case "$opt" in
-            l) list_only=true ;; 
-            v) version="$OPTARG"; version_set=true ;; 
-            d) set_default=true ;; 
-            :)  # missing option argument
-                if [[ "$OPTARG" == "v" ]]; then
-                    echo "Error: -v requires a version argument." >&2
-                else
-                    echo "Usage: cubemx [-l] [-v version] [-d] [ioc-file]" >&2
-                fi
-                return 1
-                ;;
-            \?)
-                echo "Usage: cubemx [-l] [-v version] [-d] [ioc-file]" >&2
-                return 1
-                ;;
-        esac
-    done
-    shift $((OPTIND -1))
-
-    # If requesting to set default without specifying a version
-    if [[ "$set_default" = true && "$version_set" = false ]]; then
-        echo "Error: must specify -v <version> to set a new default." >&2
-        return 1
-    fi
-
-    # list versions
-    if [[ "$list_only" = true ]]; then
-        echo "Available STM32CubeMX versions under /opt/st/:"
-        for dir in /opt/st/stm32cubemx_*; do
-            [[ -d "$dir" ]] || continue
-            echo "  ${dir##*/stm32cubemx_}"
-        done
-        return
-    fi
-
-    # verify install dir for the chosen version
-    local install_dir="/opt/st/stm32cubemx_${version}"
-    if [[ ! -d "$install_dir" ]]; then
-        # error for both run and default-setting modes
-        if [[ "$set_default" = true ]]; then
-            echo "Error: cannot set default; version '$version' not found under /opt/st." >&2
-        else
-            echo "Error: CubeMX version directory not found: $install_dir" >&2
-        fi
-        return 1
-    fi
-
-    # set default and exit
-    if [[ "$set_default" = true ]]; then
-        mkdir -p "$config_dir"
-        echo "$version" > "$config_file"
-        echo "Default CubeMX version set to $version"
-        return
-    fi
-
-    # optional .ioc file
-    if [[ -n "$1" ]]; then
-        if [[ ! -f "$1" ]]; then
-            echo "Given argument is not a file: $1" >&2
-            return 1
-        fi
-        ioc_file="$(realpath "$1")"
-    fi
-
-    # launch CubeMX
-    local logfile="$HOME/.local/log/STM32CubeMX/output.log"
-    pushd "$install_dir" >/dev/null || return
-
-    if [[ -n "$ioc_file" ]]; then
-        nohup ./STM32CubeMX "$ioc_file" >> "$logfile" 2>&1 &
-    else
-        nohup ./STM32CubeMX >> "$logfile" 2>&1 &
-    fi
-
-    popd >/dev/null
-}
-
-cubemxx() {
-    local logfile="$HOME/.local/log/STM32CubeMX/output.log"
-    nohup bash -lc "
-        # 1) switch into the CubeMX directory
-        cd /opt/st/stm32cubemx_6.14.0 || exit 1
-
-        # 2) run CubeMX (foreground)—output to your log
-        ./STM32CubeMX >> \"$logfile\" 2>&1
-        status=\$?
-
-        # 3) now that it’s done, run whatever follow-up you need:
-        echo \"[ \$(date '+%Y-%m-%d %H:%M:%S') ] HELLMERS CubeMX exited with status \$status\" >> \"$logfile\"
-        # ← replace the line above with your “after exit” command(s), e.g.:
-        # notify-send \"CubeMX has finished (status \$status)\"
-        # ~/scripts/post_cube_task.sh \$status
-
-    " >> "$logfile" 2>&1 &
-
-    # disown so your shell never tracks it
-    disown
-}
-
-cubemxxx() {
-    # 1) Use setsid to start a new session (so bash never registers it as a job)
-    # 2) Wrap everything in one bash -c, redirecting stdin from /dev/null
-    setsid nohup bash -c '
-        local logfile="$HOME/.local/log/STM32CubeMX/output.log"
-        cd /opt/st/stm32cubemx_6.14.0 || exit 1
-        ./STM32CubeMX >> "'"$logfile"'" 2>&1
-        status=$?
-        echo "[ $(date "+%F %T") ] CubeMX exited with status $status" >> "'"$logfile"'"
-        # …your post-exit commands here…
-    ' >/dev/null 2>&1 </dev/null &
-
-    # nothing left to disown—setsid means Bash never saw it as a job
-}
-
-
-cubemx-kill()
-{
-    pkill -f STM32CubeMX
-}
-
-cubemx-list()
-{
-    local numcols=150
-    [[ -n "$1" ]] && numcols="$1"
-    ps aux --cols "$numcols" | grep --color=always -iE "cubemx|%CPU"
-}
-
-alias stm32cubemx=cubemx
-
-export GPG_TTY=$(tty)
-
-handle_ssh_agent()
-{
-
-    SSH_ENV="$HOME/.ssh/agent-environment"
-
-    start_agent()
-    {
-        echo "Initialising new SSH agent..."
-        ssh-agent | sed 's/^echo/#echo/' >"$SSH_ENV"
-        echo Succeeded
-        chmod 600 "$SSH_ENV"
-        . "$SSH_ENV" >/dev/null
-        ssh-add ~/.ssh/ed25519_2nd
-    }
-
-    if [ -f "$SSH_ENV" ]; then
-        . "$SSH_ENV" >/dev/null
-        #ps $SSH_AGENT_PID doesn't work under Cygwin
-        ps -ef | grep $SSH_AGENT_PID | grep ssh-agent$ >/dev/null || {
-            start_agent
-        }
-    else
-        start_agent
-    fi
-}
-
-handle_ssh_agent
-
-
-# Hostname main machine - $HOSTNAME / uname -n
-machine_name_work=""
-
-# Choice of distrobox container manager
-export DBX_CONTAINER_MANAGER="podman"
-
-
 # Sources library and exits with good info in case of not being able to source
 source_lib()
 {
@@ -232,62 +33,31 @@ source_lib()
     fi
 }
 
-export -f source_lib
-
-modify_path()
-{
-    local position="$1"  # "append" or "prepend"
-    local new_path="$2"
-
-    case "$position" in
-        'append'|'prepend') ;;
-        *)
-            echo "ERROR: modify_path - Invalid position: '$position'"
-            return 1
-            ;;
-    esac
-
-    if [[ ! -d "$new_path" ]]
-    then
-        echo "ERROR: $position - Path is not a directory: '$new_path'"
-        return 1
-    fi
-
-    # Check if already in PATH
-    echo "$PATH" | tr ':' '\n' | grep -q "^$new_path\$" &&
-        return 0
-
-    case "$position" in
-        'append')
-            PATH="${PATH:+${PATH}:}${new_path}"
-            ;;
-        'prepend')
-            PATH="${new_path}${PATH:+:${PATH}}"
-            ;;
-    esac
-
-    export PATH
-}
-
-append_to_path()
-{
-    local new_path="$1"
-
-    modify_path 'append' "$new_path"
-}
-
-prepend_to_path()
-{
-    local new_path="$1"
-
-    modify_path 'prepend' "$new_path"
-}
-
-append_to_path "$HOME/.local/bin"
-append_to_path '/mnt/c/Users/s103496/AppData/Local/Programs/Microsoft VS Code/bin'
-
 # Aliases
 source_lib "$HOME/.bashrc.d/aliases.bashrc" || return 
+
+alias db=distrobox
+
+export BOARD='board_nucleo_g4'
+export B="$BOARD"
+
+export GPG_TTY=$(tty)
+
+# For running crontab. Specifically 'drop-cache-if-idle' for WSL2 RAM bug
+[ -z "$(ps -ef | grep cron | grep -v grep)" ] &&
+    sudo /etc/init.d/cron start &> /dev/null
+
+handle_ssh_agent
+
+# Hostname main machine - $HOSTNAME / uname -n
+machine_name_work=""
+
+# Choice of distrobox container manager
+export DBX_CONTAINER_MANAGER="podman"
+
+# prepend_to_path <path>
+append_to_path "$HOME/.local/bin"
+# append_to_path '/mnt/c/Users/s103496/AppData/Local/Programs/Microsoft VS Code/bin'
 
 if [[ -z "$machine_name_work" ]] 
 then
@@ -439,3 +209,4 @@ _git_lg()
   _git_log
 }
 export PATH="$HOME/.local/bin:$PATH"
+
