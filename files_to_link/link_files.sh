@@ -46,6 +46,10 @@ library_sourcing
 ### EXTRA GLOBAL VARIABLES ###
 ##############################
 
+# Set to 'true' to include VS Code Insiders settings in the symlink mappings.
+# Default is 'false' to avoid requiring Insiders configuration by default.
+readonly INCLUDE_VSCODE_INSIDERS='false'
+
 readonly WINDOWS_PATH_INDICATOR='[WIN]'
 
 ############
@@ -86,9 +90,15 @@ main()
     mappings+=(
         "${REPO_UNKNOWN_PATHS}/vscode/user/settings.json:${VSCODE_USER_SETTINGS_PATH}/settings.json"
         "${REPO_UNKNOWN_PATHS}/vscode/user/keybindings.json:${VSCODE_USER_KEYBINDINGS_PATH}/keybindings.json"
-        "${REPO_UNKNOWN_PATHS}/vscode_insiders/user/settings.json:${VSCODEINSIDERS_USER_SETTINGS_PATH}/settings.json"
-        "${REPO_UNKNOWN_PATHS}/vscode_insiders/user/keybindings.json:${VSCODEINSIDERS_USER_KEYBINDINGS_PATH}/keybindings.json"
     )
+
+    if [[ "${INCLUDE_VSCODE_INSIDERS}" == 'true' ]]
+    then
+        mappings+=(
+            "${REPO_UNKNOWN_PATHS}/vscode_insiders/user/settings.json:${VSCODEINSIDERS_USER_SETTINGS_PATH}/settings.json"
+            "${REPO_UNKNOWN_PATHS}/vscode_insiders/user/keybindings.json:${VSCODEINSIDERS_USER_KEYBINDINGS_PATH}/keybindings.json"
+        )
+    fi
 
     # Process mappings to create backups and symlinks
     for file_mapping in "${mappings[@]}"
@@ -269,41 +279,61 @@ find_vscode_settings_path()
             readonly WINDOWS_APPDATA="$(wslvar APPDATA)"
             readonly WINDOWS_APPDATA_VSCODE="${WINDOWS_APPDATA}\\Code"
             readonly WINDOWS_APPDATA_VSCODEINSIDERS="${WINDOWS_APPDATA}\\Code - Insiders"
+
+            if [[ -d "$(wslpath "$WINDOWS_APPDATA_VSCODE")" ]]
+            then
+                readonly VSCODE_USER_SETTINGS_PATH="${WINDOWS_PATH_INDICATOR}${WINDOWS_APPDATA_VSCODE}\\user"
+                readonly VSCODE_USER_KEYBINDINGS_PATH="${WINDOWS_PATH_INDICATOR}${WINDOWS_APPDATA_VSCODE}\\user"
+            else
+                readonly VSCODE_USER_SETTINGS_PATH="UNKNOWN_WINDOWS_APPDATA_VSCODE"
+                readonly VSCODE_USER_KEYBINDINGS_PATH="UNKNOWN_WINDOWS_APPDATA_VSCODE"
+            fi
+
+            if [[ -d "$(wslpath "$WINDOWS_APPDATA_VSCODEINSIDERS")" ]]
+            then
+                readonly VSCODEINSIDERS_USER_SETTINGS_PATH="${WINDOWS_PATH_INDICATOR}${WINDOWS_APPDATA_VSCODEINSIDERS}\\user"
+                readonly VSCODEINSIDERS_USER_KEYBINDINGS_PATH="${WINDOWS_PATH_INDICATOR}${WINDOWS_APPDATA_VSCODEINSIDERS}\\user"
+            else
+                readonly VSCODEINSIDERS_USER_SETTINGS_PATH="UNKNOWN_WINDOWS_APPDATA_VSCODEINSIDERS"
+                readonly VSCODEINSIDERS_USER_KEYBINDINGS_PATH="UNKNOWN_WINDOWS_APPDATA_VSCODEINSIDERS"
+            fi
+
+            # Check if any VSCode settings path found
+            if ! [[ -d "$(wslpath "$WINDOWS_APPDATA_VSCODE")" ]] && ! [[ -d "$(wslpath "$WINDOWS_APPDATA_VSCODEINSIDERS")" ]]
+            then
+                echo_warning ">>> Did not find 'VSCode' or 'VSCode Insiders' settings location. <<<"
+                return 1
+            fi
+
             ;;
         'native')
-            echo_error "Native kernel while finding vscode settings path - TODO"
-            exit 1
+            
+            readonly LINUX_VSCODE_CONFIG_PATH="$HOME/.config/Code/User"
+
+            if ! [[ -d "$LINUX_VSCODE_CONFIG_PATH" ]]
+            then
+                echo_error "Expected path for VSCode config, in Linux native kernel, does not exist"
+                exit 1
+            fi
+
+            readonly VSCODE_USER_SETTINGS_PATH="${LINUX_VSCODE_CONFIG_PATH}"
+            readonly VSCODE_USER_KEYBINDINGS_PATH="${LINUX_VSCODE_CONFIG_PATH}"
+
+            readonly LINUX_VSCODE_INSIDERS_CONFIG_PATH="$HOME/.config/Code - Insiders/User"
+            if [[ -d "${LINUX_VSCODE_INSIDERS_CONFIG_PATH}" ]]
+            then
+                readonly VSCODEINSIDERS_USER_SETTINGS_PATH="${LINUX_VSCODE_INSIDERS_CONFIG_PATH}"
+                readonly VSCODEINSIDERS_USER_KEYBINDINGS_PATH="${LINUX_VSCODE_INSIDERS_CONFIG_PATH}"
+            else
+                readonly VSCODEINSIDERS_USER_SETTINGS_PATH="UNKNOWN_LINUX_VSCODE_INSIDERS"
+                readonly VSCODEINSIDERS_USER_KEYBINDINGS_PATH="UNKNOWN_LINUX_VSCODE_INSIDERS"
+            fi
             ;;
         *)
             echo_error "Unknown kernel while finding vscode settings path"
             exit 1
             ;;
     esac
-
-    if [[ -d "$(wslpath "$WINDOWS_APPDATA_VSCODE")" ]]
-    then
-        readonly VSCODE_USER_SETTINGS_PATH="${WINDOWS_PATH_INDICATOR}${WINDOWS_APPDATA_VSCODE}\\user"
-        readonly VSCODE_USER_KEYBINDINGS_PATH="${WINDOWS_PATH_INDICATOR}${WINDOWS_APPDATA_VSCODE}\\user"
-    else
-        readonly VSCODE_USER_SETTINGS_PATH="UNKNOWN_WINDOWS_APPDATA_VSCODE"
-        readonly VSCODE_USER_KEYBINDINGS_PATH="UNKNOWN_WINDOWS_APPDATA_VSCODE"
-    fi
-
-    if [[ -d "$(wslpath "$WINDOWS_APPDATA_VSCODEINSIDERS")" ]]
-    then
-        readonly VSCODEINSIDERS_USER_SETTINGS_PATH="${WINDOWS_PATH_INDICATOR}${WINDOWS_APPDATA_VSCODEINSIDERS}\\user"
-        readonly VSCODEINSIDERS_USER_KEYBINDINGS_PATH="${WINDOWS_PATH_INDICATOR}${WINDOWS_APPDATA_VSCODEINSIDERS}\\user"
-    else
-        readonly VSCODEINSIDERS_USER_SETTINGS_PATH="UNKNOWN_WINDOWS_APPDATA_VSCODEINSIDERS"
-        readonly VSCODEINSIDERS_USER_KEYBINDINGS_PATH="UNKNOWN_WINDOWS_APPDATA_VSCODEINSIDERS"
-    fi
-
-    # Check if any VSCode settings path found
-    if ! [[ -d "$(wslpath "$WINDOWS_APPDATA_VSCODE")" ]] && ! [[ -d "$(wslpath "$WINDOWS_APPDATA_VSCODE")" ]]
-    then
-        echo_warning ">>> Did not find 'VSCode' or 'VSCode Insiders' settings location. <<<"
-        return 1
-    fi
 }
 
 register_help_text 'handle_windows_symlink' \
