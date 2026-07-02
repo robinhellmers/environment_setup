@@ -2,6 +2,8 @@
 	autoSquash = true
 [alias]
     # Some shorts
+    c = commit
+    p = push
     co = checkout
     st = status
     sr = status-recursive
@@ -61,3 +63,6 @@
 	ui = auto
 [merge]
 	log = true
+[user]
+	email = robin@hellmers.se
+	name = Robin Hellmers
