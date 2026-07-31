@@ -12,6 +12,50 @@ ORANGE_COLOR='\033[0;33m'
 MAGENTA_COLOR='\033[0;35m'
 END_COLOR='\033[0m'
 
+debug_bash_enable()
+{
+    old_ps4="$PS4"
+
+    local nesting_level='+ '
+    local linenumber='${LINENO}'
+    local fullfile='${BASH_SOURCE}'
+    local filename='${BASH_SOURCE##*/}'
+
+    # '${LINENO}:' always evaluates to '123:'
+    #
+    # If 'func' does NOT exist:
+    #     '${func:- }' evaluates to ' '
+    #     '${func:+(): }' evaluates to ''
+    # Meaning
+    #     linenumber_w_funcname='123: '
+    #
+    # If 'func' DOES exist, e.g. func='myfunc'
+    #     '${func:- }' evaluates to 'myfunc'
+    #     '${func:+(): }' evaluates to '(): '
+    # Meaning
+    #     * linenumber_w_funcname='123:myfunc(): '
+    local linenumber_part="${linenumber}:"
+    local filename_part="${filename:+${filename}:}"
+    local fullfile_part="${fullfile:+${fullfile}:}"
+    local funcname_part='${FUNCNAME[0]:- }${FUNCNAME[0]:+(): }'
+
+    local ps4_construct_wo_file="${nesting_level}${linenumber_part}${funcname_part}"
+    local ps4_construct_w_filename="${nesting_level}${linenumber_part}${filename_part}${funcname_part}"
+    local ps4_construct_w_fullfile="${nesting_level}${linenumber_part}${fullfile_part}${funcname_part}"
+
+    export PS4="$ps4_construct_w_filename"
+
+    set -x
+    export SHELLOPTS
+}
+
+debug_bash_disable()
+{
+    set +x
+    export PS4="$old_ps4"
+    export -n SHELLOPTS
+}
+
 copy_function()
 {
     if ! [[ -n "$(declare -f "$1")" ]]
