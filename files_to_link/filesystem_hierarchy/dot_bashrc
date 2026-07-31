@@ -7,6 +7,34 @@ case $- in
       *) return;;
 esac
 
+handle_ssh_agent()
+{
+
+    SSH_ENV="$HOME/.ssh/agent-environment"
+
+    start_agent()
+    {
+        echo "Initialising new SSH agent..."
+        ssh-agent | sed 's/^echo/#echo/' >"$SSH_ENV"
+        echo Succeeded
+        chmod 600 "$SSH_ENV"
+        . "$SSH_ENV" >/dev/null
+        ssh-add ~/.ssh/ed25519_2nd
+    }
+
+    if [ -f "$SSH_ENV" ]; then
+        . "$SSH_ENV" >/dev/null
+        #ps $SSH_AGENT_PID doesn't work under Cygwin
+        ps -ef | grep $SSH_AGENT_PID | grep ssh-agent$ >/dev/null || {
+            start_agent
+        }
+    else
+        start_agent
+    fi
+}
+
+handle_ssh_agent
+
 
 # Hostname main machine - $HOSTNAME / uname -n
 machine_name_work=""
