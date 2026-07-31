@@ -4,6 +4,8 @@ alias reboot='echo "Rethink what you are doing. If you want to reboot your host 
 
 alias db=distrobox
 
+alias print_path='echo $PATH | tr ":" "\n"'
+
 DEFAULT_BOLD_COLOR='\033[1;39m'
 DEFAULT_UNDERLINE_COLOR='\033[4;39m'
 RED_COLOR='\033[0;31m'
