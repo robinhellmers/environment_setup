@@ -12,7 +12,7 @@ esac
 machine_name_work=""
 
 # Choice of distrobox container manager
-export DBX_CONTAINER_MANAGER="docker"
+export DBX_CONTAINER_MANAGER="podman"
 
 
 # Sources library and exits with good info in case of not being able to source
