@@ -201,3 +201,159 @@ fi
 
 # List all recipes when run from the top directory of a build tree
 alias ls-recipes="ls meta*/recipes*/*/*.bb"
+
+
+export BOARD='board_nucleo_g4'
+export B="$BOARD"
+
+cubemx() {
+    # config
+    local config_dir="$HOME/.config/cubemx"
+    local config_file="$config_dir/default_version"
+
+    # load saved default or fallback
+    if [[ -f "$config_file" ]]; then
+        version="$(<"$config_file")"
+    else
+        version="6.15.0"
+    fi
+
+    local ioc_file=""
+    local list_only=false
+    local set_default=false
+    local version_set=false
+
+    # Reset getopts
+    OPTIND=1
+
+    # parse flags: -l (list), -v <version>, -d (set default)
+    while getopts ":lv:d" opt; do
+        case "$opt" in
+            l) list_only=true ;; 
+            v) version="$OPTARG"; version_set=true ;; 
+            d) set_default=true ;; 
+            :)  # missing option argument
+                if [[ "$OPTARG" == "v" ]]; then
+                    echo "Error: -v requires a version argument." >&2
+                else
+                    echo "Usage: cubemx [-l] [-v version] [-d] [ioc-file]" >&2
+                fi
+                return 1
+                ;;
+            \?)
+                echo "Usage: cubemx [-l] [-v version] [-d] [ioc-file]" >&2
+                return 1
+                ;;
+        esac
+    done
+    shift $((OPTIND -1))
+
+    # If requesting to set default without specifying a version
+    if [[ "$set_default" = true && "$version_set" = false ]]; then
+        echo "Error: must specify -v <version> to set a new default." >&2
+        return 1
+    fi
+
+    # list versions
+    if [[ "$list_only" = true ]]; then
+        echo "Available STM32CubeMX versions under /opt/st/:"
+        for dir in /opt/st/stm32cubemx_*; do
+            [[ -d "$dir" ]] || continue
+            echo "  ${dir##*/stm32cubemx_}"
+        done
+        return
+    fi
+
+    # verify install dir for the chosen version
+    local install_dir="/opt/st/stm32cubemx_${version}"
+    if [[ ! -d "$install_dir" ]]; then
+        # error for both run and default-setting modes
+        if [[ "$set_default" = true ]]; then
+            echo "Error: cannot set default; version '$version' not found under /opt/st." >&2
+        else
+            echo "Error: CubeMX version directory not found: $install_dir" >&2
+        fi
+        return 1
+    fi
+
+    # set default and exit
+    if [[ "$set_default" = true ]]; then
+        mkdir -p "$config_dir"
+        echo "$version" > "$config_file"
+        echo "Default CubeMX version set to $version"
+        return
+    fi
+
+    # optional .ioc file
+    if [[ -n "$1" ]]; then
+        if [[ ! -f "$1" ]]; then
+            echo "Given argument is not a file: $1" >&2
+            return 1
+        fi
+        ioc_file="$(realpath "$1")"
+    fi
+
+    # launch CubeMX
+    local logfile="$HOME/.local/log/STM32CubeMX/output.log"
+    pushd "$install_dir" >/dev/null || return
+
+    if [[ -n "$ioc_file" ]]; then
+        nohup ./STM32CubeMX "$ioc_file" >> "$logfile" 2>&1 &
+    else
+        nohup ./STM32CubeMX >> "$logfile" 2>&1 &
+    fi
+
+    popd >/dev/null
+}
+
+cubemxx() {
+    local logfile="$HOME/.local/log/STM32CubeMX/output.log"
+    nohup bash -lc "
+        # 1) switch into the CubeMX directory
+        cd /opt/st/stm32cubemx_6.14.0 || exit 1
+
+        # 2) run CubeMX (foreground)—output to your log
+        ./STM32CubeMX >> \"$logfile\" 2>&1
+        status=\$?
+
+        # 3) now that it’s done, run whatever follow-up you need:
+        echo \"[ \$(date '+%Y-%m-%d %H:%M:%S') ] HELLMERS CubeMX exited with status \$status\" >> \"$logfile\"
+        # ← replace the line above with your “after exit” command(s), e.g.:
+        # notify-send \"CubeMX has finished (status \$status)\"
+        # ~/scripts/post_cube_task.sh \$status
+
+    " >> "$logfile" 2>&1 &
+
+    # disown so your shell never tracks it
+    disown
+}
+
+cubemxxx() {
+    # 1) Use setsid to start a new session (so bash never registers it as a job)
+    # 2) Wrap everything in one bash -c, redirecting stdin from /dev/null
+    setsid nohup bash -c '
+        local logfile="$HOME/.local/log/STM32CubeMX/output.log"
+        cd /opt/st/stm32cubemx_6.14.0 || exit 1
+        ./STM32CubeMX >> "'"$logfile"'" 2>&1
+        status=$?
+        echo "[ $(date "+%F %T") ] CubeMX exited with status $status" >> "'"$logfile"'"
+        # …your post-exit commands here…
+    ' >/dev/null 2>&1 </dev/null &
+
+    # nothing left to disown—setsid means Bash never saw it as a job
+}
+
+
+cubemx-kill()
+{
+    pkill -f STM32CubeMX
+}
+
+cubemx-list()
+{
+    local numcols=150
+    [[ -n "$1" ]] && numcols="$1"
+    ps aux --cols "$numcols" | grep --color=always -iE "cubemx|%CPU"
+}
+
+alias stm32cubemx=cubemx
