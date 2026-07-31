@@ -236,3 +236,14 @@ if [[ -f ~/.bashrc.d/workspace.d/workspace.bash_completion ]]
 then
     . ~/.bashrc.d/workspace.d/workspace.bash_completion
 fi
+
+# For git completion of the command 'git highlight-commit'
+_git_highlight_commit()
+{
+  _git_log
+}
+
+_git_lg()
+{
+  _git_log
+}
