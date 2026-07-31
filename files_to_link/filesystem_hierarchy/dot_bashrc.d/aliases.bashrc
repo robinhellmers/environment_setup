@@ -84,7 +84,7 @@ fi
 alias wget='wget -q --show-progress --progress=bar:force:noscroll'
 
 if hash code-insiders &>/dev/null &&
-   hash code &>/dev/null
+   ! hash code &>/dev/null
 then
     alias code=code-insiders
 fi
