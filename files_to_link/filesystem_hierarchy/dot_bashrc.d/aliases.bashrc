@@ -401,3 +401,20 @@ cubemx-list()
 }
 
 alias stm32cubemx=cubemx
+
+cdp()
+{
+    # Get the last argument of the previous command
+    local last_arg="$_"
+
+    # Check if the last argument is a directory
+    if [ -d "$last_arg" ]
+    then
+        cd "$last_arg"
+    elif [ -f "$last_arg" ]
+    then
+        cd "$(dirname "$last_arg")"
+    else
+        echo "The last argument is neither a directory nor a file: '$last_arg'"
+    fi
+}
