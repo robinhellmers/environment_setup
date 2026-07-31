@@ -43,22 +43,53 @@ source_lib()
 
 export -f source_lib
 
+modify_path()
+{
+    local position="$1"  # "append" or "prepend"
+    local new_path="$2"
+
+    case "$position" in
+        'append'|'prepend') ;;
+        *)
+            echo "ERROR: modify_path - Invalid position: '$position'"
+            return 1
+            ;;
+    esac
+
+    if [[ ! -d "$new_path" ]]
+    then
+        echo "ERROR: $position - Path is not a directory: '$new_path'"
+        return 1
+    fi
+
+    # Check if already in PATH
+    echo "$PATH" | tr ':' '\n' | grep -q "^$new_path\$" &&
+        return 0
+
+    case "$position" in
+        'append')
+            PATH="${PATH:+${PATH}:}${new_path}"
+            ;;
+        'prepend')
+            PATH="${new_path}${PATH:+:${PATH}}"
+            ;;
+    esac
+
+    export PATH
+}
+
 append_to_path()
 {
     local new_path="$1"
 
-    if [[ ! -d "$new_path" ]]
-    then
-        echo "ERROR: append_to_path - Path is not a directory: '$new_path'"
-        return 1
-    fi
+    modify_path 'append' "$new_path"
+}
 
-    # Check if already in path
-    echo $PATH | tr ':' '\n' | grep -q "^$new_path\$" &&
-        return 0
+prepend_to_path()
+{
+    local new_path="$1"
 
-    PATH="${PATH:+${PATH}:}${new_path}"
-    export PATH
+    modify_path 'prepend' "$new_path"
 }
 
 append_to_path "$HOME/.local/bin"
