@@ -621,3 +621,32 @@ pdfopen()
     # Open the PDF at the specified page using Foxit
     nohup "$foxit_exe" /A "page=$page" "$win_path" </dev/null >/dev/null 2>&1 &
 }
+
+git-li() {
+  git log \
+    --color=always \
+    --graph \
+    --decorate-refs-exclude='refs/heads/pull' \
+    --decorate-refs-exclude='refs/remotes/origin/pull' \
+    --format=format:'%C(#f0890c)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset)%n%C(dim white)%d%C(reset)' \
+    "$@" \
+  | while IFS= read -r line; do
+      # 1) skip any purely-blank lines (this removes the empty "%n" when no refs)
+      [[ -z $line ]] && continue
+
+      # 2) if this is the "(...)" line, split it...
+      if [[ $line =~ ^[[:space:]]*\((.*)\)[[:space:]]*$ ]]; then
+        refs="${BASH_REMATCH[1]}"
+        IFS=',' read -ra parts <<< "$refs"
+        for r in "${parts[@]}"; do
+          # strip leading space from each ref
+          r="${r# }"
+          printf '    %s\n' "$r"
+        done
+      else
+        # 3) otherwise, it's the commit+message line—print it
+        echo "$line"
+      fi
+    done \
+  | less -R
+}
