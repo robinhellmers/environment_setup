@@ -418,3 +418,204 @@ cdp()
         echo "The last argument is neither a directory nor a file: '$last_arg'"
     fi
 }
+
+pdfsearch()
+{
+    # Usage: search_pdf [-o] "search_term" file.pdf
+    local open_pdf='false'
+
+    # Check for the -o flag
+    if [[ "$1" == "-o"* ]]
+    then
+        open_pdf='true'
+        local flag_rest="${1#-o}"
+        shift
+
+        local open_pdf_found_num
+        local number_regex='^[0-9]+$'
+
+        if [[ -z "$flag_rest" ]]
+        then
+            open_pdf_found_num=1
+        elif [[ $flag_rest =~ $number_regex ]]
+        then
+            open_pdf_found_num="$flag_rest"
+            echo "open_pdf_found_num: '$open_pdf_found_num'"
+        else
+            echo "Usage: search_pdf [-o<num>] \"search_term\" file.pdf|file.txt"
+            return 1
+        fi
+    fi
+
+    local search_term
+    local pdf_file
+
+    if (( $# == 1 ))
+    then
+        if ! [[ -f "$LAST_PDF_SEARCHED" ]]
+        then
+            echo "If 1 argument used, it must be the content to search for."
+            echo "Then \$LAST_PDF_SEARCHED must be set, e.g. by doing a search with pdf file specified before."
+            return 1
+        fi
+
+        pdf_file="$LAST_PDF_SEARCHED"
+
+    elif (( $# == 2 ))
+    then
+        pdf_file="$2"
+    else
+        echo "Error: No arguments given."
+        return 1
+    fi
+
+    search_term="$1"
+
+    if [[ -z "$search_term" || ! -f "$pdf_file" ]]
+    then
+        echo "Usage: search_pdf [-o] \"search_term\" file.pdf|file.txt"
+        return 1
+    fi
+
+    # Check if pdftotext is installed
+    if ! command -v pdftotext &> /dev/null
+    then
+        echo "Error: pdftotext is not installed. Please install it and try again."
+        return 1
+    fi
+
+    LAST_PDF_SEARCHED="$pdf_file"
+
+    # Get the directory and base name, then build the .txt file path
+    local dir
+    dir=$(dirname "$pdf_file")
+    local base
+    base=$(basename "$pdf_file" .pdf)
+    local txt_file="$dir/$base.txt"
+
+    # If the text file doesn't exist, generate it
+    if [[ ! -f "$txt_file" ]]
+    then
+        echo -e "Text version of pdf not found. Generating it:\n   '$txt_file'\n"
+
+        pdftotext "$pdf_file" "$txt_file"
+
+        echo -e "Done generating\n    '$txt_file'.\nSearching..."
+    fi
+
+    # Search the text file for the search term and formfeed characters, then print page numbers
+    local output
+    output="$(grep -F -o -e $'\f' -e "$search_term" "$txt_file" | \
+        awk 'BEGIN { page = 1 }
+            /\f/ { ++page; next }
+            { printf "%d: %s\n", page, $0 }')"
+
+    echo -e "\n$output"
+
+    if [[ "$open_pdf" == 'true' ]]
+    then
+        local first_line
+        first_line="$(echo "$output" | head -n 1)"
+
+        local line
+        line="$(echo "$output" | sed -n "${open_pdf_found_num}p")"
+
+
+        if [[ -z "$first_line" ]]
+        then
+            echo "No occurrence of '$search_term' found."
+            return 1
+        elif [[ -z "$line" ]]
+        then
+            local num_occurances
+            num_occurances="$(echo "$output" | wc -l)"
+
+            echo "Only $num_occurances occurances exist. Cannot open occurance $open_pdf_found_num."
+            echo "Opening first occurance."
+
+            line="$first_line"
+        fi
+
+        local page
+        page="$(echo "$line" | cut -d: -f1)"
+
+        echo -e "\nOpening page: '$page'"
+
+        pdfopen "$pdf_file" "$page"
+    fi
+}
+
+pdfopen()
+{
+    local pdf_file
+    local page
+
+    local number_regex='^[0-9]+$'
+
+    if (( $# == 0 ))
+    then
+        if ! [[ -f "$LAST_PDF_SEARCHED" ]]
+        then
+            echo "Could not find file from '\$LAST_PDF_SEARCHED'"
+            return 1
+        fi
+
+        pdf_file="$LAST_PDF_SEARCHED"
+        page="1"
+
+    elif (( $# == 1 ))
+    then
+        if [[ -f "$1" ]]
+        then
+            pdf_file="$1"
+        elif [[ $1 =~ $number_regex ]]
+        then
+            if ! [[ -f "$LAST_PDF_SEARCHED" ]]
+            then
+                echo "Could not find file from '\$LAST_PDF_SEARCHED'"
+                return 1
+            fi
+            pdf_file="$LAST_PDF_SEARCHED"
+            page=$1
+        else
+            echo "Invalid input."
+            return 1
+        fi
+    elif (( $# == 2 ))
+    then
+        pdf_file="$1"
+        page="$2"
+    else
+        echo "Invalid input."
+        return 1
+    fi
+
+    if [[ ! -f "$pdf_file" ]]
+    then
+        echo "Error: File '$pdf_file' not found."
+        return 1
+    fi
+
+    if ! [[ $page =~ $number_regex ]]
+    then
+        echo "Error: Given page number, not a number '$page'"
+        return 1
+    fi
+
+    # Convert the PDF file path to Windows format using wslpath
+    local win_path
+    win_path=$(wslpath -w "$pdf_file")
+
+    # Path to Foxit Reader executable (adjust if necessary)
+    local foxit_exe="/mnt/c/Program Files (x86)/Foxit Software/Foxit PDF Reader/FoxitPDFReader.exe"
+
+    if [[ ! -x "$foxit_exe" ]]
+    then
+        echo -e "Error: FoxitPDFReader.exe not found at\n    '$foxit_exe'\nPlease check your installation."
+        return 1
+    fi
+
+    echo -e "\nOpening PDF:\n$pdf_file\n"
+    # Open the PDF at the specified page using Foxit
+    nohup "$foxit_exe" /A "page=$page" "$win_path" </dev/null >/dev/null 2>&1 &
+}
