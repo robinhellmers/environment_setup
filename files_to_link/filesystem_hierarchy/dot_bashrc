@@ -7,6 +7,10 @@ case $- in
       *) return;;
 esac
 
+# For running crontab. Specifically 'drop-cache-if-idle' for WSL2 RAM bug
+[ -z "$(ps -ef | grep cron | grep -v grep)" ] &&
+    sudo /etc/init.d/cron start &> /dev/null
+
 handle_ssh_agent()
 {
 
