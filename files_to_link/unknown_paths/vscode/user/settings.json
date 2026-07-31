@@ -271,6 +271,7 @@
         "**/.DS_Store": true,
         "**/Thumbs.db": true
     },
+    "workbench.activityBar.location": "top",
     // "editor.fontFamily": "Fira Code, Consolas, 'Courier New', monospace",
     // "editor.fontLigatures": "'true', 'ss02'"// <=, >=
     // "editor.fontFamily": "JetBrains Mono, Consolas, 'Courier New', monospace",
