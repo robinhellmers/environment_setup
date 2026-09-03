@@ -132,6 +132,8 @@ append_to_path "$HOME/.local/bin"
 # Aliases
 source_lib "$HOME/.bashrc.d/aliases.bashrc" || return 
 
+source_lib "$HOME/.bashrc.d/axis.bashrc" || return
+
 if [[ -z "$machine_name_work" ]] 
 then
     echo -e "${DEFAULT_BOLD_COLOR}Remember to define 'machine_name_work' in your '~/.bashrc' file.${END_COLOR}"
