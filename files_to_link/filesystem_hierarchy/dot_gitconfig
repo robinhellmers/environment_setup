@@ -182,10 +182,11 @@ git lg HEAD -10; \
     }; f"
    	meta-save  = save-meta
    	meta-apply = apply-meta
+	push-pre-branch = "!f() { b=$(sed -nre \"s#ref: refs/heads/(pre-)?(master$|special/|rel/|int/|dev/|topic/|fix/)#\\1\\2#p\" .git/HEAD 2>/dev/null) && [ \"$b\" ] && git push \"$@\" origin $b:pre-${b#pre-} || echo \"Not currently on a valid branch!\" >&2; }; f"
 [diff]
     tool = vimdiff
 [user]
-	email = robin.hellmers@prevas.se
+	email = robinh@axis.com
 	name = Robin Hellmers
 [includeIf "gitdir:~/git/private/"]
     path = ~/git/private/.gitconfig
@@ -201,5 +202,17 @@ git lg HEAD -10; \
 [core]
     whitespace = cr-at-eol
     editor = micro
+	attributesfile = /usr/share/atools/gitattributes
+	gitproxy = axis-git-proxy
 [init]
     defaultBranch = main
+	templatedir = /usr/share/ahooks/templates
+[merge]
+	log = true
+[diff "odf"]
+	textconv = odt2txt
+[push]
+	default = tracking
+[axis "hooks"]
+	directory = /usr/share/ahooks/hooks.d
+	workingdirHooks = true
