@@ -90,7 +90,7 @@ _ps1_base_indicators()
     ps1_start="${ps1_base_first}${ps1_base_second}"
     ps1_end='\n\$ '
     # PS1 adding @work in orange
-    ps1_machine_work='\[\033[38;5;214m\]@work\[\033[00m\]'
+    ps1_machine_work='\[\033[38;5;214m\]@build\[\033[00m\]'
 
     local machine="$(uname -n)"
 
