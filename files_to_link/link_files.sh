@@ -87,12 +87,15 @@ main()
 
     find_vscode_settings_path
 
-    mappings+=(
-        "${REPO_UNKNOWN_PATHS}/vscode/user/settings.json:${VSCODE_USER_SETTINGS_PATH}/settings.json"
-        "${REPO_UNKNOWN_PATHS}/vscode/user/keybindings.json:${VSCODE_USER_KEYBINDINGS_PATH}/keybindings.json"
-    )
+    if [[ -n "${VSCODE_USER_SETTINGS_PATH}" ]]
+    then
+        mappings+=(
+            "${REPO_UNKNOWN_PATHS}/vscode/user/settings.json:${VSCODE_USER_SETTINGS_PATH}/settings.json"
+            "${REPO_UNKNOWN_PATHS}/vscode/user/keybindings.json:${VSCODE_USER_KEYBINDINGS_PATH}/keybindings.json"
+        )
+    fi
 
-    if [[ "${INCLUDE_VSCODE_INSIDERS}" == 'true' ]]
+    if [[ "${INCLUDE_VSCODE_INSIDERS}" == 'true' ]] && [[ -d "${VSCODEINSIDERS_USER_SETTINGS_PATH}" ]]
     then
         mappings+=(
             "${REPO_UNKNOWN_PATHS}/vscode_insiders/user/settings.json:${VSCODEINSIDERS_USER_SETTINGS_PATH}/settings.json"
@@ -307,17 +310,33 @@ find_vscode_settings_path()
 
             ;;
         'native')
-            
+
             readonly LINUX_VSCODE_CONFIG_PATH="$HOME/.config/Code/User"
 
             if ! [[ -d "$LINUX_VSCODE_CONFIG_PATH" ]]
             then
-                echo_error "Expected path for VSCode config, in Linux native kernel, does not exist"
-                exit 1
-            fi
+                echo_warning "Expected path for VSCode config, in Linux native kernel, does not exist: '$LINUX_VSCODE_CONFIG_PATH'"
+                echo_warning "VSCode does not seem to be installed natively on this machine. This is expected if you are e.g. only using the Remote-SSH extension from another machine."
+                echo
 
-            readonly VSCODE_USER_SETTINGS_PATH="${LINUX_VSCODE_CONFIG_PATH}"
-            readonly VSCODE_USER_KEYBINDINGS_PATH="${LINUX_VSCODE_CONFIG_PATH}"
+                local vscode_missing_answer
+                read -r -p "Skip linking VSCode settings and continue? [Y/n] " vscode_missing_answer
+
+                case "$vscode_missing_answer" in
+                    [Nn]*)
+                        echo_error "Aborting. Install VSCode natively on this machine and re-run this script."
+                        exit 1
+                        ;;
+                    *)
+                        echo_warning "Skipping VSCode settings linking."
+                        readonly VSCODE_USER_SETTINGS_PATH=""
+                        readonly VSCODE_USER_KEYBINDINGS_PATH=""
+                        ;;
+                esac
+            else
+                readonly VSCODE_USER_SETTINGS_PATH="${LINUX_VSCODE_CONFIG_PATH}"
+                readonly VSCODE_USER_KEYBINDINGS_PATH="${LINUX_VSCODE_CONFIG_PATH}"
+            fi
 
             readonly LINUX_VSCODE_INSIDERS_CONFIG_PATH="$HOME/.config/Code - Insiders/User"
             if [[ -d "${LINUX_VSCODE_INSIDERS_CONFIG_PATH}" ]]

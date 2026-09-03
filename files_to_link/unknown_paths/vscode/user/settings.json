@@ -279,6 +279,8 @@
     "editor.fontLigatures": true,
     // "editor.fontSize": 10,
     "workbench.colorTheme": "Dark Modern",
+    "explorer.confirmDragAndDrop": false,
+    "markdown.extension.list.indentationSize": "inherit",
     // "github.copilot.enable": {
     //     "*": false,
     //     "plaintext": false,
