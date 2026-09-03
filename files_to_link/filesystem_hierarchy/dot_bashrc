@@ -43,7 +43,7 @@ handle_ssh_agent
 
 
 # Hostname main machine - $HOSTNAME / uname -n
-machine_name_work=""
+machine_name_work="se-buildblade05x"
 
 # Choice of distrobox container manager
 export DBX_CONTAINER_MANAGER="podman"
