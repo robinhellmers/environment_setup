@@ -25,10 +25,11 @@ handle_ssh_agent()
         echo Succeeded
         chmod 600 "$SSH_ENV"
         . "$SSH_ENV" >/dev/null
-        ssh-add ~/.ssh/ed25519_2nd
+        ssh-add ~/.ssh/ed25519
     }
 
-    if [ -f "$SSH_ENV" ]; then
+    if [ -f "$SSH_ENV" ];
+    then
         . "$SSH_ENV" >/dev/null
         #ps $SSH_AGENT_PID doesn't work under Cygwin
         ps -ef | grep $SSH_AGENT_PID | grep ssh-agent$ >/dev/null || {
