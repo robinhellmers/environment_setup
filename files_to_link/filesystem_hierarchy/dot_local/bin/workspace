@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+
+############################
+### VARIABLE DEFINITIONS ###
+############################
+
+# Prefer an SSH config host alias so this can remain simply "build".
+build_server="build"
+yocto_trees_path="dists"
+yocto_default_tree="cfp"
+yocto_default_machine="c6110"
+
+################################
+### END VARIABLE DEFINITIONS ###
+################################
+
+main()
+{
+    local target_environment="$1"
+
+    case "$target_environment" in
+        '-h'|'--help')
+            print_help
+            ;;
+        'yocto')
+            handle_yocto "$2" "$3"
+            ;;
+        *)
+            echo "Invalid first input: $target_environment"
+            echo "Choose 'yocto'."
+            return 1
+            ;;
+    esac
+}
+
+print_help()
+{
+    echo "\
+Enter a Yocto workspace on the build server.
+
+Usage: work yocto [tree] [machine]
+
+    tree: Yocto tree under '$yocto_trees_path'.
+    machine: Yocto build machine.
+"
+}
+
+handle_yocto()
+{
+    local tree="$1"
+    local machine="$2"
+
+    [[ -z "$tree" ]] && tree="$yocto_default_tree"
+    [[ -z "$machine" ]] && machine="$yocto_default_machine"
+
+    if [[ -z "$machine_name_work" ]]
+    then
+        echo "The variable 'machine_name_work' is not set."
+        echo "Define and export it from your '.bashrc'."
+        return 1
+    fi
+
+    if [[ "$(uname -n)" != "$machine_name_work" ]]
+    then
+        local remote_command
+
+        # rssh appends its own setup and executes $SHELL on the server. These
+        # variables tell the remote .bashrc that work started this session.
+        remote_command="export WORK_SSH_SESSION=true WORK_YOCTO_TREE=$tree WORK_YOCTO_MACHINE=$machine; export SHELL=\"/bin/bash\";"
+
+        rssh "$build_server" "$remote_command"
+        return
+    fi
+
+    enter_yocto_environment "$tree" "$machine"
+}
+
+enter_yocto_environment()
+{
+    local tree="$1"
+    local machine="$2"
+    local yocto_path="$yocto_trees_path/$tree"
+
+    if ! [[ -d "$yocto_path" ]]
+    then
+        echo "Yocto tree directory does not exist: '$yocto_path'"
+        return 1
+    fi
+
+    cd "$yocto_path" || return
+
+    if ! source /usr/share/oe-setup/oe-setup.sh
+    then
+        echo "Could not source OpenEmbedded setup."
+        return 1
+    fi
+
+    if ! oe-initenv -m "$machine"
+    then
+        echo "Could not source Yocto environment for machine '$machine'."
+        return 1
+    fi
+
+    export YOCTO_ENV_SOURCED='true'
+
+    [[ -d 'workspace/sources' ]] && cd 'workspace/sources'
+}
+
+main "$@"

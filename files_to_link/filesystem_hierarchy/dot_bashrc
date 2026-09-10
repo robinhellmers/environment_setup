@@ -44,7 +44,7 @@ handle_ssh_agent
 
 
 # Hostname main machine - $HOSTNAME / uname -n
-machine_name_work="se-buildblade05x"
+export machine_name_work="se-buildblade05x"
 
 # Choice of distrobox container manager
 export DBX_CONTAINER_MANAGER="podman"
@@ -134,12 +134,6 @@ append_to_path "$HOME/.local/bin"
 source_lib "$HOME/.bashrc.d/aliases.bashrc" || return 
 
 source_lib "$HOME/.bashrc.d/axis.bashrc" || return
-
-if [[ -z "$machine_name_work" ]] 
-then
-    echo -e "${DEFAULT_BOLD_COLOR}Remember to define 'machine_name_work' in your '~/.bashrc' file.${END_COLOR}"
-    echo -e "${DEFAULT_BOLD_COLOR}Define it to the name of your host machine, given by 'uname -n'${END_COLOR}"
-fi
 
 #####
 # Backup function and execute that to not run in a loop
