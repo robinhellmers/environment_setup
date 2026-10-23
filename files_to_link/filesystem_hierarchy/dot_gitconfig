@@ -197,8 +197,8 @@ git lg HEAD -10; \
 [color "diff"]
     newMoved = green bold
 [credential]
-    helper = /usr/local/bin/git-credential-manager
-    credentialStore = gpg
+	credentialStore = secretservice
+	helper = /usr/local/bin/git-credential-manager
 [core]
     whitespace = cr-at-eol
     editor = micro
