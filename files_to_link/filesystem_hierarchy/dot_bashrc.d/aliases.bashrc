@@ -5,6 +5,7 @@ source_lib "$HOME/.bashrc.d/aliases.d/airpods.alias" || return
 source_lib "$HOME/.bashrc.d/aliases.d/pdf.alias" || return 
 source_lib "$HOME/.bashrc.d/aliases.d/stm32cubemx.alias" || return
 source_lib "$HOME/.bashrc.d/aliases.d/debug_bash.alias" || return
+source_lib "$HOME/.bashrc.d/aliases.d/function_handling.alias" || return
 
 alias reboot='echo "Rethink what you are doing. If you want to reboot your host machine, use \\reboot" '
 
@@ -19,22 +20,6 @@ GREEN_COLOR='\033[0;32m'
 ORANGE_COLOR='\033[0;33m'
 MAGENTA_COLOR='\033[0;35m'
 END_COLOR='\033[0m'
-
-copy_function()
-{
-    if ! [[ -n "$(declare -f "$1")" ]]
-    then
-        echo "ERROR copy_function(): Could not declare function name: '$1'" >&2
-        return 1
-    fi
-    eval "${_/$1/$2}"
-}
-
-rename_function()
-{
-    copy_function "$@" || return
-    unset -f "$1"
-}
 
 #####
 # Have oe-initenv set a variable as well, without changing source code
