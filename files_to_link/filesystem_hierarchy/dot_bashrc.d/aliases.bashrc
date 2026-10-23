@@ -407,6 +407,9 @@ cubemx-list()
 
 alias stm32cubemx=cubemx
 
+# Go to Downloads
+alias cdd="cd $HOME/Downloads"
+
 cdp()
 {
     # Get the last argument of the previous command
