@@ -9,6 +9,7 @@ source_lib "$HOME/.bashrc.d/aliases.d/function_handling.alias" || return
 source_lib "$HOME/.bashrc.d/aliases.d/openembedded.alias" || return
 source_lib "$HOME/.bashrc.d/aliases.d/ssh.alias" || return
 source_lib "$HOME/.bashrc.d/aliases.d/tmux_exit.alias" || return
+source_lib "$HOME/.bashrc.d/aliases.d/less.alias" || return
 
 alias reboot='echo "Rethink what you are doing. If you want to reboot your host machine, use \\reboot" '
 
@@ -82,18 +83,6 @@ rmwsdir()
            -exec grep -qIl '.' {} \; \
            -exec sed -i 's/[[:space:]]\+$//' {} \+
 }
-
-# Highlight code
-if command -v highlight &>/dev/null
-then
-    # Highlight 'less'
-    # Line numbers; add the flags --line-numbers --line-numer-length=3
-    export LESSOPEN="| $(which highlight) %s --out-format xterm256 --force -s candy --no-trailing-nl"
-    export LESS=" -R"
-
-    # Highlight 'cat'
-    alias cat="highlight --out-format xterm256 --line-numbers --line-number-length=3 --force -s zenburn --no-trailing-nl"
-fi
 
 # Go to Downloads
 alias cdd="cd $HOME/Downloads"

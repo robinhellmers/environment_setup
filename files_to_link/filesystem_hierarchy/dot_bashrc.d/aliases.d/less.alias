@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# Highlight code
+if command -v highlight &>/dev/null
+then
+    # Highlight 'less'
+    # Line numbers; add the flags --line-numbers --line-numer-length=3
+    export LESSOPEN="| $(which highlight) %s --out-format xterm256 --force -s candy --no-trailing-nl"
+    export LESS=" -R"
+
+    # Highlight 'cat'
+    alias cat="highlight --out-format xterm256 --line-numbers --line-number-length=3 --force -s zenburn --no-trailing-nl"
+fi
+
