@@ -1,0 +1,23 @@
+#!/bin/bash
+
+#####
+# Have oe-initenv set a variable as well, without changing source code
+# Backup function and execute that to not run in a loop
+if [[ "$(type -t oe-initenv)" == 'function' ]]
+then
+    backup_function_name='oe-initenv-original'
+    rename_function oe-initenv "$backup_function_name"
+
+    oe-initenv() {
+        local command="OE_INITENV_EXECUTED=true; $backup_function_name $@"
+
+        [[ "$login_session" == 'true' ]] && bash_opts='-il' || bash_opts='-i'
+        # Create another bash subshell, run the command and keep the shell alive
+        bash $bash_opts  <<< "$command; echo -e \"\n\"; exec </dev/tty"
+    }
+fi
+#####
+
+# List all recipes when run from the top directory of a build tree
+alias ls-recipes="ls meta*/recipes*/*/*.bb"
+

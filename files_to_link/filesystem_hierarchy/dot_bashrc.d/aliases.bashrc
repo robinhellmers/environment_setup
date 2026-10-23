@@ -6,6 +6,7 @@ source_lib "$HOME/.bashrc.d/aliases.d/pdf.alias" || return
 source_lib "$HOME/.bashrc.d/aliases.d/stm32cubemx.alias" || return
 source_lib "$HOME/.bashrc.d/aliases.d/debug_bash.alias" || return
 source_lib "$HOME/.bashrc.d/aliases.d/function_handling.alias" || return
+source_lib "$HOME/.bashrc.d/aliases.d/openembedded.alias" || return
 
 alias reboot='echo "Rethink what you are doing. If you want to reboot your host machine, use \\reboot" '
 
@@ -20,24 +21,6 @@ GREEN_COLOR='\033[0;32m'
 ORANGE_COLOR='\033[0;33m'
 MAGENTA_COLOR='\033[0;35m'
 END_COLOR='\033[0m'
-
-#####
-# Have oe-initenv set a variable as well, without changing source code
-# Backup function and execute that to not run in a loop
-if [[ "$(type -t oe-initenv)" == 'function' ]]
-then
-    backup_function_name='oe-initenv-original'
-    rename_function oe-initenv "$backup_function_name"
-
-    oe-initenv() {
-        local command="OE_INITENV_EXECUTED=true; $backup_function_name $@"
-
-        [[ "$login_session" == 'true' ]] && bash_opts='-il' || bash_opts='-i'
-        # Create another bash subshell, run the command and keep the shell alive
-        bash $bash_opts  <<< "$command; echo -e \"\n\"; exec </dev/tty"
-    }
-fi
-#####
 
 if command -v trash &>/dev/null
 then
@@ -185,9 +168,6 @@ then
     # Highlight 'cat'
     alias cat="highlight --out-format xterm256 --line-numbers --line-number-length=3 --force -s zenburn --no-trailing-nl"
 fi
-
-# List all recipes when run from the top directory of a build tree
-alias ls-recipes="ls meta*/recipes*/*/*.bb"
 
 # Go to Downloads
 alias cdd="cd $HOME/Downloads"
