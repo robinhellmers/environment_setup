@@ -1,0 +1,140 @@
+#!/bin/bash
+
+# ----------------------------------------
+# Interactive ls viewer
+# ----------------------------------------
+
+_ls_fzf() {
+    local selected status listing count height pos
+    local first_line date_column padding
+    local -a args=("$@")
+
+    # Generate colored ls output
+    listing=$(command ls "${args[@]}" --color=always)
+    status=$?
+
+    if (( status != 0 )); then
+        return "$status"
+    fi
+
+    # Remove the "total" line
+    if [[ "$listing" == total\ * ]]; then
+        listing=${listing#*$'\n'}
+    fi
+
+    # Handle empty directories
+    if [[ -z "$listing" ]]; then
+        echo "No files found."
+        return
+    fi
+
+    # Calculate viewer height (maximum 12 file rows)
+    count=$(printf '%s\n' "$listing" | wc -l)
+    height=$(( count < 12 ? count + 1 : 13 ))
+    pos=$(( count < 12 ? count : 12 ))
+
+    # Detect date column automatically
+    first_line=${listing%%$'\n'*}
+
+    date_column=$(
+        printf '%s\n' "$first_line" |
+        sed -E 's/\x1B\[[0-9;]*m//g' |
+        awk '{
+            if (match($0, /(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[[:space:]]+[0-9]+[[:space:]]+([0-9][0-9]:[0-9][0-9]|[0-9][0-9][0-9][0-9])/))
+                print RSTART - 1
+            else
+                print 35
+        }'
+    )
+
+    # Account for fzf's two-character selection margin
+    padding=$(( date_column + 2 - 5 ))
+    (( padding < 0 )) && padding=0
+
+    # Display current date in bold white
+    printf '%*s\033[1;97mNow: %s\033[0m\n' \
+        "$padding" '' "$(date '+%b %e %H:%M')"
+
+    # Save cursor position
+    tput sc
+
+    # Launch fzf
+    selected=$(
+        printf '%s\n' "$listing" |
+        fzf --ansi --no-sort --height="$height" \
+            --layout=reverse-list \
+            --no-info --no-header --no-separator \
+            --no-mouse --no-clear \
+            --bind "load:pos($pos)"
+    )
+    status=$?
+
+    # Restore cursor position
+    tput rc
+
+    if (( status == 0 )); then
+        # Enter: show only selected file, preserving colors
+        tput ed
+
+        printf '%s\n' "$listing" |
+            awk -v selected="$selected" '
+                {
+                    plain = $0
+                    gsub(/\033\[[0-9;]*m/, "", plain)
+
+                    if (plain == selected) {
+                        printf "  %s\n", $0
+                        exit
+                    }
+                }
+            '
+    else
+        # Esc / Ctrl+C: preserve visible list without extra empty line
+        tput cud "$((height - 1))"
+        printf '\r\n'
+    fi
+}
+
+# ----------------------------------------
+# Date-sorted shortcuts
+# ----------------------------------------
+
+lsn() { _ls_fzf -lth "$@"; }   # Newest first
+lso() { _ls_fzf -lthr "$@"; }  # Oldest first
+lsr() { lso "$@"; }           # Reverse = oldest
+lsl() { lso "$@"; }           # Latest = oldest
+
+# ----------------------------------------
+# Standard ls with optional fzf
+# ----------------------------------------
+
+# 'function' keyword prevents alias expansion of ls when re-sourcing
+# E.g already existing alias ls='ls --color=auto' would replace ls() { to
+# ls --color=auto() {
+function ls {
+    local arg
+    local interactive=false
+    local -a args=()
+
+    for arg in "$@"; do
+        if [[ "$arg" == "--" ]]; then
+            args+=("$arg")
+            continue
+        elif [[ "$arg" == "-l" ]]; then
+            interactive=true
+        elif [[ "$arg" == -* && "$arg" != --* && "$arg" == *l* ]]; then
+            interactive=true
+            arg="${arg/l/}"
+            [[ "$arg" != "-" ]] && args+=("$arg")
+        else
+            args+=("$arg")
+        fi
+    done
+
+    if [[ "$interactive" == true && -t 0 && -t 1 ]]; then
+        # Use exactly the same viewer as lsn
+        lsn "${args[@]}"
+    else
+        command ls "$@"
+    fi
+}

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source_lib "$HOME/.bashrc.d/aliases.d/ls.alias" || return 
+
 alias reboot='echo "Rethink what you are doing. If you want to reboot your host machine, use \\reboot" '
 
 alias db=distrobox
