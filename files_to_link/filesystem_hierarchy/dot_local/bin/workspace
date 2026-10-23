@@ -103,7 +103,11 @@ enter_yocto_environment()
 
     export YOCTO_ENV_SOURCED='true'
 
-    [[ -d 'workspace/sources' ]] && cd 'workspace/sources'
+    if [[ -d 'workspace/sources' ]]
+    then
+        cd 'workspace/sources' || return
+    fi
 }
 
 main "$@"
+
