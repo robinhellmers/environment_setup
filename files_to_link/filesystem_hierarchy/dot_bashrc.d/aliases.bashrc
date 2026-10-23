@@ -1,5 +1,6 @@
 #!/bin/bash
 
+source_lib "$HOME/.bashrc.d/aliases.d/colors.alias" || return
 source_lib "$HOME/.bashrc.d/aliases.d/ls.alias" || return 
 source_lib "$HOME/.bashrc.d/aliases.d/airpods.alias" || return 
 source_lib "$HOME/.bashrc.d/aliases.d/pdf.alias" || return 
@@ -18,14 +19,6 @@ alias reboot='echo "Rethink what you are doing. If you want to reboot your host 
 alias db=distrobox
 
 alias print_path='echo $PATH | tr ":" "\n"'
-
-DEFAULT_BOLD_COLOR='\033[1;39m'
-DEFAULT_UNDERLINE_COLOR='\033[4;39m'
-RED_COLOR='\033[0;31m'
-GREEN_COLOR='\033[0;32m'
-ORANGE_COLOR='\033[0;33m'
-MAGENTA_COLOR='\033[0;35m'
-END_COLOR='\033[0m'
 
 if command -v trash &>/dev/null
 then
