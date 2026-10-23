@@ -1,3 +1,4 @@
 Host *
     AddKeysToAgent yes
-    IdentityFile ~/.ssh/ed25519
+    IdentityFile ~/.ssh/id_ed25519
+    ForwardX11 no
