@@ -1,0 +1,68 @@
+#!/bin/bash
+
+airpods-id() {
+    wpctl status -n |
+        awk '/bluez_card\.F8_D3_F0_95_08_F8/ {
+            for (i = 1; i <= NF; i++) {
+                if ($i ~ /^[0-9]+\.$/) {
+                    sub(/\.$/, "", $i)
+                    print $i
+                    exit
+                }
+            }
+        }'
+}
+
+airpods-profile()
+{
+    local id
+    id="$(airpods-id)" || return 1
+
+    pw-cli enum-params "$id" Profile |
+        awk -F'"' '/String "/ { print $2; exit }'
+}
+
+airpods-call()
+{
+    local id
+    id="$(airpods-id)"
+
+    if [[ -z "$id" ]]; then
+        echo "AirPods not found"
+        return 1
+    fi
+
+    wpctl set-profile "$id" 261 || return 1
+
+    if [[ "$(airpods-profile)" == "headset-head-unit-msbc" ]]; then
+        echo "AirPods: call mode enabled (HFP/mSBC + microphone)"
+    else
+        echo "ERROR: Failed to switch AirPods to call mode"
+        echo "Current profile: $(airpods-profile)"
+        return 1
+    fi
+}
+
+alias airpods-teams=airpods-call
+
+airpods-music()
+{
+    local id
+    id="$(airpods-id)"
+
+    if [[ -z "$id" ]]; then
+        echo "AirPods not found"
+        return 1
+    fi
+
+    wpctl set-profile "$id" 5 || return 1
+
+    if [[ "$(airpods-profile)" == "a2dp-sink" ]]; then
+        echo "AirPods: music mode enabled (A2DP)"
+    else
+        echo "ERROR: Failed to switch AirPods to music mode"
+        echo "Current profile: $(airpods-profile)"
+        return 1
+    fi
+}
+
