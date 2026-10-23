@@ -11,6 +11,7 @@ source_lib "$HOME/.bashrc.d/aliases.d/ssh.alias" || return
 source_lib "$HOME/.bashrc.d/aliases.d/tmux_exit.alias" || return
 source_lib "$HOME/.bashrc.d/aliases.d/less.alias" || return
 source_lib "$HOME/.bashrc.d/aliases.d/rm_whitespace.alias" || return
+source_lib "$HOME/.bashrc.d/aliases.d/cd.alias" || return
 
 alias reboot='echo "Rethink what you are doing. If you want to reboot your host machine, use \\reboot" '
 
@@ -44,25 +45,5 @@ eog()
 {
     command eog "$1" &
     disown
-}
-
-# Go to Downloads
-alias cdd="cd $HOME/Downloads"
-
-cdp()
-{
-    # Get the last argument of the previous command
-    local last_arg="$_"
-
-    # Check if the last argument is a directory
-    if [ -d "$last_arg" ]
-    then
-        cd "$last_arg"
-    elif [ -f "$last_arg" ]
-    then
-        cd "$(dirname "$last_arg")"
-    else
-        echo "The last argument is neither a directory nor a file: '$last_arg'"
-    fi
 }
 
