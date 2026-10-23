@@ -8,6 +8,7 @@ source_lib "$HOME/.bashrc.d/aliases.d/debug_bash.alias" || return
 source_lib "$HOME/.bashrc.d/aliases.d/function_handling.alias" || return
 source_lib "$HOME/.bashrc.d/aliases.d/openembedded.alias" || return
 source_lib "$HOME/.bashrc.d/aliases.d/ssh.alias" || return
+source_lib "$HOME/.bashrc.d/aliases.d/tmux_exit.alias" || return
 
 alias reboot='echo "Rethink what you are doing. If you want to reboot your host machine, use \\reboot" '
 
@@ -27,35 +28,6 @@ if command -v trash &>/dev/null
 then
     alias rt=trash
     alias rm="echo \"Don't use rm, use trash/rt (trash-cli package) instead.\"; false"
-fi
-
-#####
-# Override 'exit' for tmux. If you run subshells in the tmux session by e.g.
-# running 'bash', you can exit that subshell with 'exit'. But if in the top
-# shell, that command will exit the tmux pane instead. Override to check the
-# variable to identify this top shell. The variable is set in .bash_profile and
-# is not exported to only keep it in this shell and not the subshells.
-if (( SHLVL == TMUX_TOP_SHELL_LEVEL ))
-then
-    exit()
-    {
-        while true
-        do
-            read -n 1 -p "Do you really want to exit the tmux pane? [y/n]: " answer
-            case "$answer" in
-                [Yy])
-                    command exit
-                    ;;
-                [Nn])
-                    echo -e "\nNot exiting.";
-                    break
-                    ;;
-                *)
-                    echo -e "\nPlease answer y/n"
-                    ;;
-            esac
-        done
-    }
 fi
 
 alias wget='wget -q --show-progress --progress=bar:force:noscroll'
