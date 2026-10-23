@@ -7,6 +7,7 @@ source_lib "$HOME/.bashrc.d/aliases.d/stm32cubemx.alias" || return
 source_lib "$HOME/.bashrc.d/aliases.d/debug_bash.alias" || return
 source_lib "$HOME/.bashrc.d/aliases.d/function_handling.alias" || return
 source_lib "$HOME/.bashrc.d/aliases.d/openembedded.alias" || return
+source_lib "$HOME/.bashrc.d/aliases.d/ssh.alias" || return
 
 alias reboot='echo "Rethink what you are doing. If you want to reboot your host machine, use \\reboot" '
 
@@ -64,53 +65,6 @@ if hash code-insiders &>/dev/null &&
 then
     alias code=code-insiders
 fi
-
-ssh-repeat()
-{
-    while ! ssh "$1" true >/dev/null 2>&1; do
-        sleep 5
-    done; echo "Host is back up at $(date)!"
-}
-
-symlink_ssh_repeat_completion()
-{
-    local ssh_repeat_symlink
-    ssh_repeat_symlink='/usr/share/bash-completion/completions/ssh-repeat'
-
-    if [[ -L "$ssh_repeat_symlink" ]] && \
-       [[ -e "$ssh_repeat_symlink" ]]
-    then # Symlink and not broken
-        :
-    elif [[ -f "$ssh_repeat_symlink" ]]
-    then # Regular file
-        :
-    else
-        # Connect ssh completion with ssh-repeat
-        sudo ln -sf '/usr/share/bash-completion/completions/ssh' "$ssh_repeat_symlink"
-    fi
-
-    complete -p ssh-repeat >/dev/null 2>&1 || complete -F _ssh 'ssh-repeat'
-}
-
-#####
-# Enable bash completion in interactive shells, for e.g. ssh
-#
-# Autocomplete as 'ssh'. '_ssh' is used as 'ssh' use that as seen
-# with 'complete -p ssh'
-# . /usr/share/bash-completion/bash_completion
-#
-if ! shopt -oq posix; then
-    if [ -f /usr/share/bash-completion/bash_completion ]; then
-        . /usr/share/bash-completion/bash_completion
-        symlink_ssh_repeat_completion
-    elif [ -f /etc/bash_completion ]; then
-        . /etc/bash_completion
-        symlink_ssh_repeat_completion
-    fi
-fi
-
-unset -f symlink_ssh_repeat_completion
-#####
 
 eog()
 {
