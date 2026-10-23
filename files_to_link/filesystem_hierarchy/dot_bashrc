@@ -25,7 +25,7 @@ handle_ssh_agent()
         echo Succeeded
         chmod 600 "$SSH_ENV"
         . "$SSH_ENV" >/dev/null
-        ssh-add ~/.ssh/ed25519
+        ssh-add ~/.ssh/id_ed25519
     }
 
     if [ -f "$SSH_ENV" ];
