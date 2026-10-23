@@ -1,0 +1,41 @@
+#!/bin/bash
+
+rmws()
+{
+    sed -i 's/[[:space:]]\+$//' $1
+}
+
+rmwsdir()
+{
+    local thedepth=0
+
+    local re='^[0-9]+$'
+
+    if [[ -n "$1" ]]
+    then
+        if ! [[ "$1" =~ $re ]]
+        then
+            echo "Error: Input not a number" >&2
+            return 1
+        else
+            thedepth="$1"
+        fi
+    fi
+
+    echo "Removing trailing whitespace recursively $thedepth directories down."
+    # The following part excludes hidden directories
+    # -not -path '*/.*'
+    # The following part excludes .md (markdown) files
+    # -not -path '*.md'
+    # The following part excludes binaries
+    # -exec grep -Il '.' {} \;
+    # The following part removes trailing whitespace
+    # -exec sed -i 's/[[:space:]]\+$//' {} \+
+    find . -maxdepth "$((thedepth + 1))" \
+           -type f \
+           -not -path '*/.*' \
+           -not -path '*.md' \
+           -exec grep -qIl '.' {} \; \
+           -exec sed -i 's/[[:space:]]\+$//' {} \+
+}
+

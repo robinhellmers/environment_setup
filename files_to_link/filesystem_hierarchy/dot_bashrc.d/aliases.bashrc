@@ -10,6 +10,7 @@ source_lib "$HOME/.bashrc.d/aliases.d/openembedded.alias" || return
 source_lib "$HOME/.bashrc.d/aliases.d/ssh.alias" || return
 source_lib "$HOME/.bashrc.d/aliases.d/tmux_exit.alias" || return
 source_lib "$HOME/.bashrc.d/aliases.d/less.alias" || return
+source_lib "$HOME/.bashrc.d/aliases.d/rm_whitespace.alias" || return
 
 alias reboot='echo "Rethink what you are doing. If you want to reboot your host machine, use \\reboot" '
 
@@ -43,45 +44,6 @@ eog()
 {
     command eog "$1" &
     disown
-}
-
-rmws()
-{
-    sed -i 's/[[:space:]]\+$//' $1
-}
-
-rmwsdir()
-{
-    local thedepth=0
-
-    local re='^[0-9]+$'
-
-    if [[ -n "$1" ]]
-    then
-        if ! [[ "$1" =~ $re ]]
-        then
-            echo "Error: Input not a number" >&2
-            return 1
-        else
-            thedepth="$1"
-        fi
-    fi
-
-    echo "Removing trailing whitespace recursively $thedepth directories down."
-    # The following part excludes hidden directories
-    # -not -path '*/.*'
-    # The following part excludes .md (markdown) files
-    # -not -path '*.md'
-    # The following part excludes binaries
-    # -exec grep -Il '.' {} \;
-    # The following part removes trailing whitespace
-    # -exec sed -i 's/[[:space:]]\+$//' {} \+
-    find . -maxdepth "$((thedepth + 1))" \
-           -type f \
-           -not -path '*/.*' \
-           -not -path '*.md' \
-           -exec grep -qIl '.' {} \; \
-           -exec sed -i 's/[[:space:]]\+$//' {} \+
 }
 
 # Go to Downloads
