@@ -216,3 +216,5 @@ git lg HEAD -10; \
 [axis "hooks"]
 	directory = /usr/share/ahooks/hooks.d
 	workingdirHooks = true
+[credential "https://dev.azure.com"]
+	useHttpPath = true
