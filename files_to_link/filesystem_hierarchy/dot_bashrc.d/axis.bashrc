@@ -18,7 +18,7 @@ fi
 if [[ "$WORK_SSH_SESSION" == 'true' ]]
 then
     # Source the setup so its environment and directory remain in this shell.
-    if ! source "$HOME/work" yocto "$WORK_YOCTO_TREE" "$WORK_YOCTO_MACHINE"
+    if ! source "$HOME/.bashrc.d/workspace" yocto "$WORK_YOCTO_TREE" "$WORK_YOCTO_MACHINE"
     then
         unset WORK_SSH_SESSION WORK_YOCTO_TREE WORK_YOCTO_MACHINE
         return 1
