@@ -9,6 +9,6 @@ then
     export LESS=" -R"
 
     # Highlight 'cat'
-    alias cat="highlight --out-format xterm256 --line-numbers --line-number-length=3 --force -s zenburn --no-trailing-nl"
+    alias caf="highlight --out-format xterm256 --line-numbers --line-number-length=3 --force -s zenburn --no-trailing-nl"
 fi
 
